@@ -22,11 +22,11 @@ sealed class KeccakHash { //TODO: Transfer to new KMM library project.
          * @param byteArray [ByteArray] of inputs.
          * @param lengthInBytes (Optional) Intended for the Extendable Hash Functions.
          */
-        fun generate(parameters: KeccakParameter, byteArray: ByteArray, lengthInBytes: Int = 0): ByteArray {
+        fun generate(parameters: KeccakParameter, byteArray: ByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
             val outputLength = if(parameters.maxLength == 0)
                 max(lengthInBytes, parameters.minLength / 8)
             else
-                parameters.minLength / 8
+                min(lengthInBytes, parameters.minLength / 8)
 
             val paddedBytes = KeccakMath.pad10n1Flex(FlexiByteArray(byteArray) + parameters.SUFFIX, parameters.BITRATE).toByteArray()
 
