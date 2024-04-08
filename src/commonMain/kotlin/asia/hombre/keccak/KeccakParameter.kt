@@ -1,5 +1,8 @@
 package asia.hombre.keccak
 
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+
 /**
  * Parameter sets for SHA-3(Keccak).
  *
@@ -7,6 +10,8 @@ package asia.hombre.keccak
  *
  * @author Ron Lauren Hombre
  */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: Int, val CAPACITY: Int, val SUFFIX: FlexiByte) {
     /**
      * Keccak[448](M||01, 224)

@@ -1,6 +1,9 @@
 package asia.hombre.keccak
 
 import kotlin.experimental.or
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.math.max
 import kotlin.math.min
 
@@ -11,6 +14,8 @@ import kotlin.math.min
  *
  * @author Ron Lauren Hombre
  */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 class FlexiByteArray {
     private var byteArray: ByteArray
 
@@ -23,6 +28,7 @@ class FlexiByteArray {
     /**
      * Create a FlexiByteArray with a specific size and initialize with a specific value.
      */
+    @JsName("init")
     constructor(size: Int, init: (Int) -> Byte) {
         byteArray = ByteArray(size, init)
     }
@@ -30,6 +36,7 @@ class FlexiByteArray {
     /**
      * Wrap a ByteArray and set the bit index of the last byte.
      */
+    @JsName("wrap")
     constructor(byteArray: ByteArray, bitIndex: Int = 7) {
         this.byteArray = byteArray.copyOf()
         this.bitIndex = bitIndex

@@ -1,6 +1,8 @@
 package asia.hombre.keccak
 
 import asia.hombre.keccak.internal.KeccakMath
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 import kotlin.math.min
 
 /**
@@ -11,7 +13,8 @@ import kotlin.math.min
  * @constructor Generates a hash based on the [KeccakParameter] during absorption.
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@JsExport
 class KeccakByteStream(val parameters: KeccakParameter) {
     private var state = Array(5) { ULongArray(5) }
     private var buffer: ByteArray = ByteArray(parameters.BYTERATE)
@@ -63,12 +66,14 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      * @throws IndexOutOfBoundsException when the Keccak parameter is not extendable and the internal state runs out of bytes.
      */
     fun next(): Byte {
-        if(index >= parameters.BYTERATE && parameters.maxLength == 0)
+        if(++index >= parameters.BYTERATE && parameters.maxLength == 0) {
             squeeze()
+            index++
+        }
         else if(parameters.maxLength != 0)
             throw IndexOutOfBoundsException("There is no further bytes to read. This is the limit of this Keccak parameter.")
 
-        return buffer[++index]
+        return buffer[index]
     }
 
     /**
@@ -79,5 +84,6 @@ class KeccakByteStream(val parameters: KeccakParameter) {
             state = KeccakMath.permute(state)
         KeccakMath.matrixToBytes(state).copyInto(buffer, 0, 0, parameters.BYTERATE)
         index = -1
+        isFirstSqueeze = false
     }
 }

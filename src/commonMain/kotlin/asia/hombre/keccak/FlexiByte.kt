@@ -1,6 +1,8 @@
 package asia.hombre.keccak
 
 import kotlin.experimental.or
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 import kotlin.math.min
 
 /**
@@ -8,6 +10,8 @@ import kotlin.math.min
  *
  * A FlexiByte offers better control over individual bits.
  */
+@OptIn(ExperimentalJsExport::class)
+@JsExport
 class FlexiByte(private val byte: Byte, val bitIndex: Int) : Number(), Comparable<Byte> {
     companion object {
         /**

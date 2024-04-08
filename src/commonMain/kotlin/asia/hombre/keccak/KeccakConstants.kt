@@ -1,5 +1,8 @@
 package asia.hombre.keccak
 
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+
 /**
  * Constants for SHA-3.
  *
@@ -7,7 +10,8 @@ package asia.hombre.keccak
  *
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@JsExport
 class KeccakConstants {
     companion object {
         val ROUND = ulongArrayOf(

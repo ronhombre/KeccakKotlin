@@ -1,6 +1,8 @@
 package asia.hombre.keccak
 
 import asia.hombre.keccak.internal.KeccakMath
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 import kotlin.math.max
 import kotlin.math.min
 
@@ -9,8 +11,9 @@ import kotlin.math.min
  *
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalUnsignedTypes::class)
-sealed class KeccakHash {
+@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@JsExport
+sealed class KeccakHash { //TODO: Transfer to new KMM library project.
     companion object {
         /**
          * Generate a hash based on the Keccak parameter.

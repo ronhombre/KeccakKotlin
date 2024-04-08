@@ -3,12 +3,16 @@ package asia.hombre.keccak.internal
 import asia.hombre.keccak.FlexiByte
 import asia.hombre.keccak.FlexiByteArray
 import asia.hombre.keccak.KeccakConstants
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+import kotlin.jvm.JvmSynthetic
 
 /**
  * As part of the standard branch, this Keccak implementation is naive and unoptimized. For an optimized but less
  * understandable version, please view the master branch.
  */
-@OptIn(ExperimentalUnsignedTypes::class)
+@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@JsExport
 internal class KeccakMath {
     internal companion object {
         /*fun pad10n1(bytes: ByteArray, multiple: Int): ByteArray {
