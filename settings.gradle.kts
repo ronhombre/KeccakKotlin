@@ -3,9 +3,11 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-
+    val kmm: String by settings
+    val dokka: String by settings
     plugins {
-        kotlin("multiplatform") version "1.9.22"
+        kotlin("multiplatform") version kmm
+        id("org.jetbrains.dokka") version dokka
     }
 }
 rootProject.name = "KeccakKotlin"

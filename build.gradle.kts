@@ -1,8 +1,10 @@
+import org.jetbrains.dokka.gradle.DokkaTask
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
 
 plugins {
     kotlin("multiplatform")
+    id("org.jetbrains.dokka")  //KDocs
     id("maven-publish")
     id("signing")
 }
@@ -202,4 +204,32 @@ tasks.register<Copy>("bundleNPM") {
         delete(npmKotlinDir)
         mkdir(npmKotlinDir)
     }
+}
+
+tasks.dokkaHtml.configure {
+    dokkaSourceSets {
+        named("commonMain") {
+            // Adjust visibility to include internal and private members
+            perPackageOption {
+                matchingRegex.set(".*") // Match all packages
+                includeNonPublic.set(false)
+            }
+            // Optionally, report undocumented members
+            reportUndocumented.set(true)
+        }
+    }
+}
+
+tasks.withType<DokkaTask>().configureEach {
+    val dokkaBaseConfiguration = """
+    {
+      "footerMessage": "(C) 2024 Ron Lauren Hombre"
+    }
+    """
+    pluginsMapConfiguration.set(
+        mapOf(
+            // fully qualified plugin name to json configuration
+            "org.jetbrains.dokka.base.DokkaBase" to dokkaBaseConfiguration
+        )
+    )
 }
