@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Tests
-        run: ./gradlew :cleanJvmTest :jvmTest --tests "asia.hombre.keccak.Test"
+        run: chmod +x gradlew && ./gradlew :cleanJvmTest :jvmTest --tests "asia.hombre.keccak.Test"
 
       - name: Publish
-        run: ./gradlew :publishAllToMavenCentral
+        run: chmod +x gradlew && ./gradlew :publishAllToMavenCentral
