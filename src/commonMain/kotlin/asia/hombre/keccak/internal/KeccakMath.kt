@@ -11,6 +11,8 @@ import kotlin.jvm.JvmSynthetic
 /**
  * As part of the master branch, this Keccak implementation has optimizations that make it relatively unreadable.
  * For a more understandable version, please view the standard branch.
+ *
+ * @author Ron Lauren Hombre
  */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
 @JsExport

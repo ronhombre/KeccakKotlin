@@ -9,6 +9,8 @@ import kotlin.math.min
  * This is an extension of the Byte class. It acts like it, but it is not it.
  *
  * A FlexiByte offers better control over individual bits.
+ *
+ * @author Ron Lauren Hombre
  */
 @OptIn(ExperimentalJsExport::class)
 @JsExport

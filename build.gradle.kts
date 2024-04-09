@@ -13,7 +13,7 @@ val projectName = "keccak"
 
 val mavenDir = projectDir.resolve("maven")
 
-val isAutomated = true
+val isAutomated = false
 
 repositories {
     mavenCentral()
