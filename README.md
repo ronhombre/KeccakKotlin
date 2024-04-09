@@ -24,14 +24,19 @@ At the 1.0.0 release, developers from various platforms should be able to use th
 
 ## Supported & Tested Platforms
 * JVM (Kotlin, Java)
-* JS (Node, Bun) _NPM RELEASE COMING SOON!_
+* JS (Node, Bun)
 * Native (Windows)
 
 ## Installation
+Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:0.0.3")
+    implementation("asia.hombre:keccak:0.1.0")
 }
+```
+NPM
+```text
+npm install keccakkotlin@0.1.0
 ```
 
 ## Usage
