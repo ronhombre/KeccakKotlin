@@ -19,11 +19,12 @@ class KeccakByteStream(val parameters: KeccakParameter) {
     private var state = Array(5) { ULongArray(5) }
     private var buffer: ByteArray = ByteArray(parameters.BYTERATE)
     private var index = -1
+    private var outputted = 0
     private var isFirstSqueeze = true
 
     val hasNext: Boolean
         get() {
-            return (index < parameters.BYTERATE) || (parameters.maxLength == 0)
+            return (index < parameters.BYTERATE) || (parameters.maxLength == 0 || outputted < (parameters.maxLength / 8))
         }
 
     /**
@@ -66,12 +67,15 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      * @throws IndexOutOfBoundsException when the Keccak parameter is not extendable and the internal state runs out of bytes.
      */
     fun next(): Byte {
-        if(++index >= parameters.BYTERATE && parameters.maxLength == 0) {
+        val canContinue = (parameters.maxLength == 0 || outputted < (parameters.minLength / 8))
+        if(++index >= parameters.BYTERATE && canContinue) {
             squeeze()
             index++
         }
-        else if(parameters.maxLength != 0)
+        else if(!canContinue)
             throw IndexOutOfBoundsException("There is no further bytes to read. This is the limit of this Keccak parameter.")
+
+        outputted++
 
         return buffer[index]
     }

@@ -4,6 +4,7 @@ import asia.hombre.keccak.internal.KeccakMath
 import kotlin.random.Random
 import kotlin.random.nextULong
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -30,6 +31,94 @@ class Tests {
         println(shake_128.toHexString(HexFormat.UpperCase))
         val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
         println(shake_256.toHexString(HexFormat.UpperCase))
+    }
+
+    //Ensure that padding optimizations are equal.
+    @Test
+    fun PADDING_EQUALITY() {
+        for(p in KeccakParameter.entries.indices) {
+            val param = KeccakParameter.entries[p]
+            val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            var input = ""
+            for(i in 0..<param.BYTERATE * 2) {
+                input += alphabet[Random.nextInt(0, 52)]
+                val inputBytes = input.encodeToByteArray()
+                val paddedInput = KeccakMath.pad10n1(inputBytes, param.BITRATE, param.SUFFIX)
+                val comparedPaddedInput = KeccakMath.pad10n1Flex(FlexiByteArray(inputBytes) + param.SUFFIX, param.BITRATE).toByteArray()
+
+                assertContentEquals(paddedInput, comparedPaddedInput, "Padding equality failed at $input with length: " + input.length + " on Parameter: " + param.name + "!")
+            }
+        }
+    }
+
+    //Ensure that both KeccakByteStream and KeccakHash generate the same hash outputs.
+    @OptIn(ExperimentalStdlibApi::class)
+    @Test
+    fun HASH_EQUALITY() {
+        for(p in KeccakParameter.entries.indices) {
+            val param = KeccakParameter.entries[p]
+            val input = "".encodeToByteArray()
+
+            val standardOutput = KeccakHash.generate(param, input).toHexString()
+            var streamOutput = ""
+
+            val keccakByteStream = KeccakByteStream(param)
+            keccakByteStream.absorb(input)
+
+            while(keccakByteStream.hasNext && streamOutput.length < standardOutput.length) {
+                streamOutput += keccakByteStream.next().toHexString()
+            }
+
+            assertEquals(standardOutput, streamOutput, "Hash equality on Parameter: " + param.name + "!")
+        }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    @Test
+    fun KNOWN_ANSWER_TEST() {
+        val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
+        assertEquals(
+            sha3_224.toHexString(),
+            "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7",
+            "Incorrect SHA3-224 answer!")
+        val sha3_256 = KeccakHash.generate(KeccakParameter.SHA3_256, "".encodeToByteArray())
+        assertEquals(
+            sha3_256.toHexString(),
+            "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+            "Incorrect SHA3-256 answer!")
+        val sha3_384 = KeccakHash.generate(KeccakParameter.SHA3_384, "".encodeToByteArray())
+        assertEquals(
+            sha3_384.toHexString(),
+            "0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004",
+            "Incorrect SHA3-384 answer!")
+        val sha3_512 = KeccakHash.generate(KeccakParameter.SHA3_512, "".encodeToByteArray())
+        assertEquals(
+            sha3_512.toHexString(),
+            "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26",
+            "Incorrect SHA3-512 answer!")
+
+        //Extendable-Output Functions
+        //A third parameter called 'lengthInBytes' is used to modify the output length.
+        val rawshake_128 = KeccakHash.generate(KeccakParameter.RAWSHAKE_128, "".encodeToByteArray())
+        assertEquals(
+            rawshake_128.toHexString(),
+            "fa019a3b17630df6014853b5470773f1",
+            "Incorrect RawSHAKE128 answer!")
+        val rawshake_256 = KeccakHash.generate(KeccakParameter.RAWSHAKE_256, "".encodeToByteArray())
+        assertEquals(
+            rawshake_256.toHexString(),
+            "3a1108d4a90a31b85a10bdce77f4bfbdcc5b1d70dd405686f8bbde834aa1a410",
+            "Incorrect RawSHAKE256 answer!")
+        val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
+        assertEquals(
+            shake_128.toHexString(),
+            "7f9c2ba4e88f827d616045507605853e",
+            "Incorrect SHAKE128 answer!")
+        val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
+        assertEquals(
+            shake_256.toHexString(),
+            "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f",
+            "Incorrect SHAKE256 answer!")
     }
 
     @OptIn(ExperimentalUnsignedTypes::class)

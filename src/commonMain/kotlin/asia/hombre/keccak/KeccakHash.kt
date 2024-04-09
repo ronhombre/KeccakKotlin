@@ -3,6 +3,7 @@ package asia.hombre.keccak
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.jvm.JvmSynthetic
 import kotlin.math.max
 import kotlin.math.min
 
@@ -13,7 +14,7 @@ import kotlin.math.min
  */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
 @JsExport
-sealed class KeccakHash { //TODO: Transfer to new KMM library project.
+sealed class KeccakHash {
     companion object {
         /**
          * Generate a hash based on the Keccak parameter.
@@ -23,12 +24,30 @@ sealed class KeccakHash { //TODO: Transfer to new KMM library project.
          * @param lengthInBytes (Optional) Intended for the Extendable Hash Functions.
          */
         fun generate(parameters: KeccakParameter, byteArray: ByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
+            val paddedBytes = KeccakMath.pad10n1(byteArray, parameters.BITRATE, parameters.SUFFIX)
+
+            return generatePadded(parameters, paddedBytes, lengthInBytes)
+        }
+
+        /**
+         * Generate a hash based on the Keccak parameter.
+         *
+         * @param parameters [KeccakParameter] of the SHA-3 Hash Function.
+         * @param flexiByteArray [FlexiByteArray] of inputs that aren't byte-size.
+         * @param lengthInBytes (Optional) Intended for the Extendable Hash Functions.
+         */
+        fun generateFlex(parameters: KeccakParameter, flexiByteArray: FlexiByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
+            val paddedBytes = KeccakMath.pad10n1Flex(flexiByteArray + parameters.SUFFIX, parameters.BITRATE).toByteArray()
+
+            return generatePadded(parameters, paddedBytes, lengthInBytes)
+        }
+
+        @JvmSynthetic
+        private fun generatePadded(parameters: KeccakParameter, paddedBytes: ByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
             val outputLength = if(parameters.maxLength == 0)
                 max(lengthInBytes, parameters.minLength / 8)
             else
                 min(lengthInBytes, parameters.minLength / 8)
-
-            val paddedBytes = KeccakMath.pad10n1Flex(FlexiByteArray(byteArray) + parameters.SUFFIX, parameters.BITRATE).toByteArray()
 
             //Absorption
             var inputOffset = 0

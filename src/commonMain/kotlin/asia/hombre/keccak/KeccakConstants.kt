@@ -14,6 +14,9 @@ import kotlin.js.JsExport
 @JsExport
 class KeccakConstants {
     companion object {
+        /**
+         * Iota modifications
+         */
         val ROUND = ulongArrayOf(
             0x0000000000000001u, 0x0000000000008082u, 0x800000000000808Au, 0x8000000080008000u,
             0x000000000000808Bu, 0x0000000080000001u, 0x8000000080008081u, 0x8000000000008009u,
@@ -21,6 +24,17 @@ class KeccakConstants {
             0x000000008000808Bu, 0x800000000000008Bu, 0x8000000000008089u, 0x8000000000008003u,
             0x8000000000008002u, 0x8000000000000080u, 0x000000000000800Au, 0x800000008000000Au,
             0x8000000080008081u, 0x8000000000008080u, 0x0000000080000001u, 0x8000000080008008u
+        )
+
+        /**
+         * Rho cyclic left shifts
+         */
+        val SHIFTS = arrayOf(
+            intArrayOf(0, 36, 3, 41, 18),
+            intArrayOf(1, 44, 10, 45, 2),
+            intArrayOf(62, 6, 43, 15, 61),
+            intArrayOf(28, 55, 25, 21, 56),
+            intArrayOf(27, 20, 39, 8, 14),
         )
     }
 }

@@ -3,27 +3,34 @@ package asia.hombre.keccak.internal
 import asia.hombre.keccak.FlexiByte
 import asia.hombre.keccak.FlexiByteArray
 import asia.hombre.keccak.KeccakConstants
+import kotlin.experimental.or
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlin.jvm.JvmSynthetic
 
 /**
- * As part of the standard branch, this Keccak implementation is naive and unoptimized. For an optimized but less
- * understandable version, please view the master branch.
+ * As part of the master branch, this Keccak implementation has optimizations that make it relatively unreadable.
+ * For a more understandable version, please view the standard branch.
  */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
 @JsExport
 internal class KeccakMath {
     internal companion object {
-        /*fun pad10n1(bytes: ByteArray, multiple: Int): ByteArray {
-            val paddedBytes = ByteArray(bytes.size + (multiple - (bytes.size % multiple)))
+        /**
+         * Optimized for exact bytes.
+         */
+        fun pad10n1(bytes: ByteArray, multiple: Int, flexiByte: FlexiByte): ByteArray {
+            val multipleInBytes = multiple shr 3
+            val paddedSize = bytes.size
+            val paddedBytes = ByteArray(paddedSize + (multipleInBytes - (paddedSize % multipleInBytes)))
 
             bytes.copyInto(paddedBytes)
-            paddedBytes[bytes.size] = 0b10000000u.toByte()
-            paddedBytes[paddedBytes.lastIndex] = (paddedBytes[paddedBytes.lastIndex].toUInt() or 0b1u).toByte()
+            paddedBytes[bytes.size] = flexiByte.toByte() or (0b1 shl (flexiByte.bitIndex + 1)).toByte()
+            paddedBytes[paddedBytes.lastIndex] = paddedBytes[paddedBytes.lastIndex] or (0b10000000u).toByte()
 
             return paddedBytes
-        }*/
+        }
+
         /**
          * Pad a bit 1 and n amount of bit 0 then end with another bit 1.
          */
@@ -54,95 +61,42 @@ internal class KeccakMath {
         }
 
         /**
-         * Parity calculation.
-         */
-        @JvmSynthetic
-        fun theta(state: Array<ULongArray>): Array<ULongArray> {
-            val c = ULongArray(5)
-            val d = ULongArray(5)
-            val newState = Array(5) { ULongArray(5) }
-            for(x in c.indices)
-                c[x] = state[x][0] xor state[x][1] xor state[x][2] xor state[x][3] xor state[x][4]
-            for(x in d.indices)
-                d[x] = c[(x + 4) % 5] xor c[(x + 1) % 5].rotateLeft(1)
-            for(y in d.indices)
-                for(x in c.indices)
-                    newState[x][y] = state[x][y] xor d[x]
-
-            return newState
-        }
-
-        /**
-         * Rotate the bits of lanes(64 bits) by specified amounts.
-         */
-        @JvmSynthetic
-        fun rho(state: Array<ULongArray>): Array<ULongArray> {
-            val newState = Array(5) { ULongArray(5) }
-            newState[0][0] = state[0][0]
-            var x = 1
-            var y = 0
-            for (t in 0..<24) {
-                newState[x][y] = state[x][y].rotateLeft(((t + 1) * (t + 2)) shr 1)
-                val oldx = x
-                x = y
-                y = moduloOf((2 * oldx) + (3 * y), 5)
-            }
-
-            return newState
-        }
-
-        /**
-         * Rearrange the lanes(64 bits).
-         */
-        @JvmSynthetic
-        fun pi(state: Array<ULongArray>): Array<ULongArray> {
-            val newState = Array(5) { ULongArray(5) }
-            for(x in 0..<5)
-                for(y in 0..<5)
-                    newState[x][y] = state[moduloOf((x + (3 * y)), 5)][x]
-
-            return newState
-        }
-
-        /**
-         * XOR lanes(64 bits).
-         */
-        @JvmSynthetic
-        fun chi(state: Array<ULongArray>): Array<ULongArray> {
-            val newState = Array(5) { ULongArray(5) }
-            for(x in 0..<5)
-                for(y in 0..<5)
-                    newState[x][y] = state[x][y] xor ((state[moduloOf((x + 1), 5)][y] xor  ULong.MAX_VALUE) and state[moduloOf((x + 2), 5)][y])
-
-            return newState
-        }
-
-        /**
-         * Modify the first(0,0) lane(64 bits) depending on the round number of the permutation.
-         */
-        @JvmSynthetic
-        fun iota(state: Array<ULongArray>, round: Int): Array<ULongArray> {
-            val newState = state.copyOf()
-
-            newState[0][0] = newState[0][0] xor KeccakConstants.ROUND[round]
-
-            return newState
-        }
-
-        /**
          * Do a single Keccak-f permutation round.
          */
         @JvmSynthetic
         fun doRound(state: Array<ULongArray>, round: Int): Array<ULongArray> {
-            var newState = state.copyOf()
+            //Theta (Parity Calculation)
+            val c = ULongArray(5) {
+                x -> state[x].reduce(ULong::xor)
+            }
+            val d = ULongArray(5) {
+                x -> c[(x + 4) % 5] xor c[(x + 1) % 5].rotateLeft(1)
+            }
+            val newState = Array(5) {
+                x -> ULongArray(5) {
+                    y -> state[x][y] xor d[x]
+                }
+            }
 
-            newState = theta(newState)
-            newState = rho(newState)
-            newState = pi(newState)
-            newState = chi(newState)
-            newState = iota(newState, round)
+            //Rho + Pi (Rotate bits and rearrange lanes)
+            val piState = Array(5) { ULongArray(5) }
+            for (x in 0 until 5)
+                for (y in 0 until 5) {
+                    val rotatedIndex = (x + (3 * y)) % 5
+                    piState[x][y] = newState[rotatedIndex][x].rotateLeft(KeccakConstants.SHIFTS[rotatedIndex][x])
+                }
 
-            return newState
+            //Chi (XOR lanes)
+            val chiState = Array(5) {
+                x -> ULongArray(5) {
+                    y -> piState[x][y] xor ((piState[(x + 1) % 5][y] xor ULong.MAX_VALUE) and piState[(x + 2) % 5][y])
+                }
+            }
+
+            //Iota (Modify the first lane with a predefined value unique for each round)
+            chiState[0][0] = chiState[0][0] xor KeccakConstants.ROUND[round]
+
+            return chiState
         }
 
         /**
@@ -152,19 +106,11 @@ internal class KeccakMath {
         fun permute(state: Array<ULongArray>): Array<ULongArray> {
             var newState = state.copyOf()
 
-            for(i in 0..<24) {
+            for(i in 0 until 24) {
                 newState = doRound(newState, i)
             }
 
             return newState
-        }
-
-        /**
-         * Modulo that works for negative and positive x values.
-         */
-        @JvmSynthetic
-        fun moduloOf(x: Int, m: Int): Int {
-            return (x % m + m) % m
         }
 
         /**
@@ -177,9 +123,9 @@ internal class KeccakMath {
             val emptyByteArray = ByteArray(200)
             bytes.copyInto(emptyByteArray)
 
-            for(x in 0..<5) {
-                for(y in 0..<5) {
-                    state[x][y] = bytesToULong(emptyByteArray.copyOfRange(8*(x+5*y), 8*(x+5*y)+8))
+            for(x in 0 until 5) {
+                for(y in 0 until 5) {
+                    state[x][y] = bytesToULong(emptyByteArray.copyOfRange((x + (5 * y)) shl 3, ((x + (5 * y)) shl 3) + 8))
                 }
             }
 
@@ -193,11 +139,11 @@ internal class KeccakMath {
         fun matrixToBytes(state: Array<ULongArray>): ByteArray {
             val emptyByteArray = ByteArray(200)
 
-            for(x in 0..<5) {
-                for(y in 0..<5) {
+            for(x in 0 until 5) {
+                for(y in 0 until 5) {
                     val ulongBytes = ulongToBytes(state[x][y])
                     for (i in 0..7) {
-                        emptyByteArray[8*(x+5*y) + i] = ulongBytes[i]
+                        emptyByteArray[((x + (5 * y)) shl 3) + i] = ulongBytes[i]
                     }
                 }
             }

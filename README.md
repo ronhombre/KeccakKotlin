@@ -6,7 +6,7 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend on any third-party library.
 
 > [!WARNING]
-> KeccakKotlin is in **BETA** stage. We are confident it works, but it is slow and unoptimized.
+> KeccakKotlin is in **ALPHA** stage. We are confident it works, but we aren't 100% sure yet.
 
 ### Intent
 
@@ -23,7 +23,16 @@ At the 1.0.0 release, developers from various platforms should be able to use th
 * SHAKE256 (Extendable, Byte Stream-able)
 
 ## Supported & Tested Platforms
-* JVM (Kotlin)
+* JVM (Kotlin, Java)
+* JS (Node, Bun) _NPM RELEASE COMING SOON!_
+* Native (Windows)
+
+## Installation
+```kotlin
+dependencies {
+    implementation("asia.hombre:keccak:0.0.3")
+}
+```
 
 ## Usage
 ```kotlin
