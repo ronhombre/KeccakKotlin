@@ -89,7 +89,7 @@ testshake256();
 console.log("Success!")
 
 //Stream
-/* KeccakByteStream is broken in Javascript.
+/*
 let stream = new KeccakByteStream(KeccakParameter.SHAKE_128);
 
 stream.absorb(Buffer.from(""));
