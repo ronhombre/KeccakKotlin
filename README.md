@@ -25,6 +25,31 @@ At the 1.0.0 release, developers from various platforms should be able to use th
 ## Supported & Tested Platforms
 * JVM (Kotlin)
 
+## Usage
+```kotlin
+import asia.hombre.keccak.KeccakHash
+
+val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
+println(sha3_224.toHexString(HexFormat.UpperCase))
+val sha3_256 = KeccakHash.generate(KeccakParameter.SHA3_256, "".encodeToByteArray())
+println(sha3_256.toHexString(HexFormat.UpperCase))
+val sha3_384 = KeccakHash.generate(KeccakParameter.SHA3_384, "".encodeToByteArray())
+println(sha3_384.toHexString(HexFormat.UpperCase))
+val sha3_512 = KeccakHash.generate(KeccakParameter.SHA3_512, "".encodeToByteArray())
+println(sha3_512.toHexString(HexFormat.UpperCase))
+
+//Extendable-Output Functions
+//A third parameter called 'lengthInBytes' is used to modify the output length.
+val rawshake_128 = KeccakHash.generate(KeccakParameter.RAWSHAKE_128, "".encodeToByteArray())
+println(rawshake_128.toHexString(HexFormat.UpperCase))
+val rawshake_256 = KeccakHash.generate(KeccakParameter.RAWSHAKE_256, "".encodeToByteArray())
+println(rawshake_256.toHexString(HexFormat.UpperCase))
+val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
+println(shake_128.toHexString(HexFormat.UpperCase))
+val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
+println(shake_256.toHexString(HexFormat.UpperCase))
+```
+
 ## Documentation
 * TODO
 
