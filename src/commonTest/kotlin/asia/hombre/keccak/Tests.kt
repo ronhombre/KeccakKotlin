@@ -1,3 +1,5 @@
+package asia.hombre.keccak
+
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.random.Random
 import kotlin.random.nextULong
@@ -5,10 +7,19 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class Test {
+class Tests {
+    @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun playground() {
+        val input = "asia.hombre.keccak.Test".encodeToByteArray()
 
+        val stream = KeccakByteStream(KeccakParameter.SHAKE_128)
+
+        stream.absorb(input)
+
+        for(i in 0..<1000) {
+            print(stream.next().toHexString(HexFormat.UpperCase))
+        }
     }
 
     @OptIn(ExperimentalUnsignedTypes::class)

@@ -1,0 +1,30 @@
+name: "Publish To Maven"
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publishmaven:
+    name: Publish To Maven
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: true
+      matrix:
+        language: [ 'java-kotlin' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: ./gradlew :cleanJvmTest :jvmTest --tests "asia.hombre.keccak.Test"
+
+      - name: Publish
+        run: ./gradlew :publishAllToMavenCentral
