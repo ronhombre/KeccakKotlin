@@ -23,8 +23,7 @@ internal class KeccakMath {
          */
         fun pad10n1(bytes: ByteArray, multiple: Int, flexiByte: FlexiByte): ByteArray {
             val multipleInBytes = multiple shr 3
-            val paddedSize = bytes.size
-            val paddedBytes = ByteArray(paddedSize + (multipleInBytes - (paddedSize % multipleInBytes)))
+            val paddedBytes = ByteArray(bytes.size + (multipleInBytes - (bytes.size % multipleInBytes)))
 
             bytes.copyInto(paddedBytes)
             paddedBytes[bytes.size] = flexiByte.toByte() or (0b1 shl (flexiByte.bitIndex + 1)).toByte()

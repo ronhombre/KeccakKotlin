@@ -6,7 +6,7 @@ import kotlin.js.JsExport
 import kotlin.math.min
 
 /**
- * This is an extension of the Byte class. It acts like it, but it is not it.
+ * This is an extension of the Byte class for non-byte size inputs.
  *
  * A FlexiByte offers better control over individual bits.
  *
@@ -31,9 +31,8 @@ class FlexiByte(private val byte: Byte, val bitIndex: Int) : Number(), Comparabl
             val bitIndex = min(string.length, 8) - 1
 
             //Should this be modified to be constant time?
-            for(i in bitIndex downTo 0) {
-                outputByte = outputByte or ((if(cleanedInput[i] == '1') 0b1 else 0b0) shl i).toByte()
-            }
+            for(i in 0..bitIndex)
+                outputByte = outputByte or ((if(cleanedInput[bitIndex - i] == '1') 0b1 else 0b0) shl i).toByte()
 
             return FlexiByte(outputByte, bitIndex)
         }

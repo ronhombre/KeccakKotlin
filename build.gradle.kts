@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "0.1.0"
+version = "0.1.1"
 description = "SHA-3 Hash Functions in Kotlin"
 
 val projectName = "keccak"
@@ -132,9 +132,10 @@ for (publication in publishing.publications.asMap) {
     }
 
     tasks.register<Exec>("publish" + parsedArtifactId + "ToMavenCentral") {
+        mustRunAfter("bundle$parsedArtifactId")
         group = "Publish"
-        if(!mavenDir.resolve(bundleFileName).exists())
-            throw RuntimeException("Bundle does not exist! Please run `bundle$parsedArtifactId`")
+        /*if(!mavenDir.resolve(bundleFileName).exists())
+            throw RuntimeException("Bundle does not exist! Please run `bundle$parsedArtifactId`")*/
 
         commandLine(
             "curl", "-X", "POST",
