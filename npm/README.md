@@ -90,19 +90,19 @@ console.log("Success!")
 
 //Stream
 /* KeccakByteStream is broken in Javascript.
-let stream = new KeccakByteStream(KeccakParameter.SHAKE128);
+let stream = new KeccakByteStream(KeccakParameter.SHAKE_128);
 
 stream.absorb(Buffer.from(""));
 
-let accumulator = "";
+let accumulator = new Int8Array(512);
 
-for(let i = 0; i < 100; i++) {
+for(let i = 0; i < 512; i++) {
     let byte = stream.next()
-    accumulator += byte.toString('hex');
+    accumulator[i] = byte;
 }
 
-console.log(accumulator);
- */
+console.log(Buffer.from(accumulator).toString('hex'));
+*/
 ```
 
 ## License

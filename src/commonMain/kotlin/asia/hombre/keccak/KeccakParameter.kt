@@ -2,6 +2,7 @@ package asia.hombre.keccak
 
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.jvm.JvmField
 
 /**
  * Parameter sets for SHA-3(Keccak).
@@ -56,5 +57,6 @@ enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: 
     /**
      * The byte rate of the Hash Function.
      */
+    @JvmField
     val BYTERATE = BITRATE / 8
 }

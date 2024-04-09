@@ -74,3 +74,16 @@ testshake128();
 testshake256();
 
 console.log("Success!")
+
+let stream = new KeccakByteStream(KeccakParameter.SHAKE_128);
+
+stream.absorb(Buffer.from(""));
+
+let accumulator = new Int8Array(512);
+
+for(let i = 0; i < 512; i++) {
+    let byte = stream.next()
+    accumulator[i] = byte;
+}
+
+console.log(Buffer.from(accumulator).toString('hex'));
