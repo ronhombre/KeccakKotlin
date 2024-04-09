@@ -49,7 +49,7 @@ internal class KeccakMath {
             if (fullZeroBytes > 0) {
                 paddedBytes.extend(fullZeroBytes)
 
-                for (i in (paddedBytes.size - fullZeroBytes) until paddedBytes.size)
+                for (i in (paddedBytes.size - fullZeroBytes)..<paddedBytes.size)
                     paddedBytes[i] = 0
             }
 
@@ -82,10 +82,10 @@ internal class KeccakMath {
 
             //Rho + Pi (Rotate bits and rearrange lanes)
             val piState = Array(5) { ULongArray(5) }
-            for (x in 0 until 5)
-                for (y in 0 until 5) {
-                    val rotatedIndex = (x + (3 * y)) % 5
-                    piState[x][y] = newState[rotatedIndex][x].rotateLeft(KeccakConstants.SHIFTS[rotatedIndex][x])
+            for (x in 0..<5)
+                for (y in 0..<5) {
+                    val rearrangedIndex = (x + (3 * y)) % 5
+                    piState[x][y] = newState[rearrangedIndex][x].rotateLeft(KeccakConstants.SHIFTS[rearrangedIndex][x])
                 }
 
             //Chi (XOR lanes)
@@ -108,7 +108,7 @@ internal class KeccakMath {
         fun permute(state: Array<ULongArray>): Array<ULongArray> {
             var newState = state.copyOf()
 
-            for(i in 0 until 24) {
+            for(i in 0..<24) {
                 newState = doRound(newState, i)
             }
 
@@ -125,11 +125,9 @@ internal class KeccakMath {
             val emptyByteArray = ByteArray(200)
             bytes.copyInto(emptyByteArray)
 
-            for(x in 0 until 5) {
-                for(y in 0 until 5) {
+            for(x in 0..<5)
+                for(y in 0..<5)
                     state[x][y] = bytesToULong(emptyByteArray.copyOfRange((x + (5 * y)) shl 3, ((x + (5 * y)) shl 3) + 8))
-                }
-            }
 
             return state
         }
@@ -141,14 +139,20 @@ internal class KeccakMath {
         fun matrixToBytes(state: Array<ULongArray>): ByteArray {
             val emptyByteArray = ByteArray(200)
 
-            for(x in 0 until 5) {
-                for(y in 0 until 5) {
+            for(x in 0..<5)
+                for(y in 0..<5) {
                     val ulongBytes = ulongToBytes(state[x][y])
-                    for (i in 0..7) {
-                        emptyByteArray[((x + (5 * y)) shl 3) + i] = ulongBytes[i]
-                    }
+                    val index = ((x + (5 * y)) shl 3)
+
+                    emptyByteArray[index] = ulongBytes[0]
+                    emptyByteArray[index + 1] = ulongBytes[1]
+                    emptyByteArray[index + 2] = ulongBytes[2]
+                    emptyByteArray[index + 3] = ulongBytes[3]
+                    emptyByteArray[index + 4] = ulongBytes[4]
+                    emptyByteArray[index + 5] = ulongBytes[5]
+                    emptyByteArray[index + 6] = ulongBytes[6]
+                    emptyByteArray[index + 7] = ulongBytes[7]
                 }
-            }
 
             return emptyByteArray
         }

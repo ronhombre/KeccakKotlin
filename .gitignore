@@ -42,3 +42,5 @@ bin/
 .DS_Store
 /.idea/
 /maven/
+/npm/kotlin/*
+/npm/package.json

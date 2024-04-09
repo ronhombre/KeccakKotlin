@@ -18,11 +18,10 @@ class FlexiByte(private val byte: Byte, val bitIndex: Int) : Number(), Comparabl
     companion object {
         /**
          * Construct a [FlexiByte] from a string of 1s and 0s.
+         *
+         * Any 1s become a bit 1 and anything else whether they are 0s or not become a bit 0.
          */
         fun fromString(string: String): FlexiByte {
-            if(string.contains(Regex("[^0-1]")))
-                throw IllegalArgumentException("FlexiByte string can only contain 1s and 0s.")
-
             val cleanedInput = string.trim()
 
             if(cleanedInput.length > 8)
