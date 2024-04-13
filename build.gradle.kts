@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "0.1.1"
+version = "0.1.3"
 description = "SHA-3 Hash Functions in Kotlin"
 
 val projectName = "keccak"

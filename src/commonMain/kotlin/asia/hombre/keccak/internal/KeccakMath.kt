@@ -21,6 +21,7 @@ internal class KeccakMath {
         /**
          * Optimized for exact bytes.
          */
+        @JvmSynthetic
         fun pad10n1(bytes: ByteArray, multiple: Int, flexiByte: FlexiByte): ByteArray {
             val multipleInBytes = multiple shr 3
             val paddedBytes = ByteArray(bytes.size + (multipleInBytes - (bytes.size % multipleInBytes)))
@@ -107,9 +108,8 @@ internal class KeccakMath {
         fun permute(state: Array<ULongArray>): Array<ULongArray> {
             var newState = state.copyOf()
 
-            for(i in 0..<24) {
+            for(i in 0..<24)
                 newState = doRound(newState, i)
-            }
 
             return newState
         }

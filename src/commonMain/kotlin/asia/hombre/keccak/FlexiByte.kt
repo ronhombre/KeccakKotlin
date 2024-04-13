@@ -3,6 +3,8 @@ package asia.hombre.keccak
 import kotlin.experimental.or
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.jvm.JvmStatic
+import kotlin.jvm.JvmSynthetic
 import kotlin.math.min
 
 /**
@@ -21,6 +23,7 @@ class FlexiByte(private val byte: Byte, val bitIndex: Int) : Number(), Comparabl
          *
          * Any 1s become a bit 1 and anything else whether they are 0s or not become a bit 0.
          */
+        @JvmStatic
         fun fromString(string: String): FlexiByte {
             val cleanedInput = string.trim()
 

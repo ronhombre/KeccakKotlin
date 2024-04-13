@@ -44,7 +44,7 @@ class KeccakByteStream(val parameters: KeccakParameter) {
     fun absorb(byteArray: ByteArray) {
         if(!isFirstSqueeze) reset()
 
-        val paddedBytes = KeccakMath.pad10n1Flex(FlexiByteArray(byteArray) + parameters.SUFFIX, parameters.BITRATE).toByteArray()
+        val paddedBytes = KeccakMath.pad10n1(byteArray, parameters.BITRATE, parameters.SUFFIX)
 
         //Absorption
         var inputOffset = 0
@@ -64,6 +64,7 @@ class KeccakByteStream(val parameters: KeccakParameter) {
     /**
      * Get the next byte.
      *
+     * @return [Byte] - The next byte of the Keccak Hash.
      * @throws IndexOutOfBoundsException when the Keccak parameter is not extendable and the internal state runs out of bytes.
      */
     fun next(): Byte {

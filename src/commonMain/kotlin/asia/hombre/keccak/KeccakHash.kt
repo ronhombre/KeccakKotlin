@@ -3,6 +3,7 @@ package asia.hombre.keccak
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.jvm.JvmStatic
 import kotlin.jvm.JvmSynthetic
 import kotlin.math.max
 import kotlin.math.min
@@ -23,6 +24,7 @@ sealed class KeccakHash {
          * @param byteArray [ByteArray] of inputs.
          * @param lengthInBytes (Optional) Intended for the Extendable Hash Functions.
          */
+        @JvmStatic
         fun generate(parameters: KeccakParameter, byteArray: ByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
             val paddedBytes = KeccakMath.pad10n1(byteArray, parameters.BITRATE, parameters.SUFFIX)
 
@@ -36,6 +38,7 @@ sealed class KeccakHash {
          * @param flexiByteArray [FlexiByteArray] of inputs that aren't byte-size.
          * @param lengthInBytes (Optional) Intended for the Extendable Hash Functions.
          */
+        @JvmStatic
         fun generateFlex(parameters: KeccakParameter, flexiByteArray: FlexiByteArray, lengthInBytes: Int = parameters.minLength / 8): ByteArray {
             val paddedBytes = KeccakMath.pad10n1Flex(flexiByteArray + parameters.SUFFIX, parameters.BITRATE).toByteArray()
 

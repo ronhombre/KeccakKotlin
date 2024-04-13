@@ -8,11 +8,12 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@OptIn(ExperimentalUnsignedTypes::class)
 class Tests {
     @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun playground() {
-        val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
+        /*val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
         println(sha3_224.toHexString(HexFormat.UpperCase))
         val sha3_256 = KeccakHash.generate(KeccakParameter.SHA3_256, "".encodeToByteArray())
         println(sha3_256.toHexString(HexFormat.UpperCase))
@@ -30,7 +31,7 @@ class Tests {
         val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
         println(shake_128.toHexString(HexFormat.UpperCase))
         val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
-        println(shake_256.toHexString(HexFormat.UpperCase))
+        println(shake_256.toHexString(HexFormat.UpperCase))*/
     }
 
     //Ensure that padding optimizations are equal.
@@ -59,7 +60,7 @@ class Tests {
             val param = KeccakParameter.entries[p]
             val input = "".encodeToByteArray()
 
-            val standardOutput = KeccakHash.generate(param, input).toHexString()
+            val standardOutput = KeccakHash.generate(param, input, param.BYTERATE * 2).toHexString()
             var streamOutput = ""
 
             val keccakByteStream = KeccakByteStream(param)
