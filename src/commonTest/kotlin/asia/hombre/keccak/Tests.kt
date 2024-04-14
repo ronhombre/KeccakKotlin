@@ -10,7 +10,6 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class Tests {
-    @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun playground() {
         /*val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
@@ -110,15 +109,15 @@ class Tests {
             rawshake_256.toHexString(),
             "3a1108d4a90a31b85a10bdce77f4bfbdcc5b1d70dd405686f8bbde834aa1a410",
             "Incorrect RawSHAKE256 answer!")
-        val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
+        val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray(), 256 / 8)
         assertEquals(
             shake_128.toHexString(),
-            "7f9c2ba4e88f827d616045507605853e",
+            "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26",
             "Incorrect SHAKE128 answer!")
-        val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
+        val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray(), 512 / 8)
         assertEquals(
             shake_256.toHexString(),
-            "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f",
+            "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be",
             "Incorrect SHAKE256 answer!")
     }
 
@@ -126,32 +125,33 @@ class Tests {
     @Test
     fun SHAKE128_CSRC_1600bit() {
         val matrix = arrayOf(
-            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u),
-            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u),
-            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u),
-            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u),
-            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u)
+            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u).toLongArray(),
+            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u).toLongArray(),
+            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u).toLongArray(),
+            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u).toLongArray(),
+            ulongArrayOf(0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0xa3a3a3a3a3a3a3a3u, 0u).toLongArray()
         )
 
         val final = KeccakMath.permute(matrix)
 
         val expectedFinal = arrayOf(
-            ulongArrayOf(0x7faaf4d610e331d4u, 0x5dca2cb6b8135ef3u, 0x9685ddd2d1fb3436u, 0xe3fe653fade68ae4u, 0xf1ae12a1024a32d9u),
-            ulongArrayOf(0xfc27f4f1e29ac527u, 0x3e4c41332facd237u, 0x7116548228f2b75bu, 0xefaad2efd5e05e2bu, 0x169af419f135e342u),
-            ulongArrayOf(0x5fee7d55aa1a19fau, 0xaf50852021380859u, 0xe12f9c5d8e1f7162u, 0xe9eab8dd8028d528u, 0xf63d920ed69388a9u),
-            ulongArrayOf(0xe575f6bd726c65f1u, 0x4e2d8df4e14ccfb6u, 0x168339a7d1d4a375u, 0x6a53d41257f5dfceu, 0x9e54006c34ab489au),
-            ulongArrayOf(0xaf17793d1c9684d5u, 0xc51a82a2779d0d31u, 0xb0c71017f6a8b2c4u, 0xf0b716798d1c0d71u, 0x85b91bb9d95adf58u)
+            ulongArrayOf(0x7faaf4d610e331d4u, 0x5dca2cb6b8135ef3u, 0x9685ddd2d1fb3436u, 0xe3fe653fade68ae4u, 0xf1ae12a1024a32d9u).toLongArray(),
+            ulongArrayOf(0xfc27f4f1e29ac527u, 0x3e4c41332facd237u, 0x7116548228f2b75bu, 0xefaad2efd5e05e2bu, 0x169af419f135e342u).toLongArray(),
+            ulongArrayOf(0x5fee7d55aa1a19fau, 0xaf50852021380859u, 0xe12f9c5d8e1f7162u, 0xe9eab8dd8028d528u, 0xf63d920ed69388a9u).toLongArray(),
+            ulongArrayOf(0xe575f6bd726c65f1u, 0x4e2d8df4e14ccfb6u, 0x168339a7d1d4a375u, 0x6a53d41257f5dfceu, 0x9e54006c34ab489au).toLongArray(),
+            ulongArrayOf(0xaf17793d1c9684d5u, 0xc51a82a2779d0d31u, 0xb0c71017f6a8b2c4u, 0xf0b716798d1c0d71u, 0x85b91bb9d95adf58u).toLongArray()
         )
 
-        assertTrue(expectedFinal.contentDeepEquals(final), "Incorrect SHAKE128 final state from 1600 bit input!")
+        assertTrue(expectedFinal.contentDeepEquals(final), "Incorrect Experimental SHAKE128 final state from 1600 bit input!")
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun longToBytesConversion() {
-        val randomLong = Random.nextULong()
-        val bytes = KeccakMath.ulongToBytes(randomLong)
-        val convertedLong = KeccakMath.bytesToULong(bytes)
+        val randomLong = Random.nextLong()
+        val bytes = KeccakMath.longToBytes(randomLong)
+        val convertedLong = KeccakMath.bytesToLong(bytes)
 
-        assertEquals(randomLong, convertedLong, "Unequal ULong Conversion!")
+        assertEquals(randomLong, convertedLong, "Unequal Long Conversion!")
     }
 }

@@ -16,7 +16,7 @@ import kotlin.math.min
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
 @JsExport
 class KeccakByteStream(val parameters: KeccakParameter) {
-    private var state = Array(5) { ULongArray(5) }
+    private var state = Array(5) { LongArray(5) }
     private var buffer: ByteArray = ByteArray(parameters.BYTERATE)
     private var index = -1
     private var outputted = 0
@@ -33,7 +33,7 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      * This still keeps the supplied parameter during initialization.
      */
     fun reset() {
-        state = Array(5) { ULongArray(5) }
+        state = Array(5) { LongArray(5) }
         buffer = ByteArray(parameters.BYTERATE)
         isFirstSqueeze = true
     }

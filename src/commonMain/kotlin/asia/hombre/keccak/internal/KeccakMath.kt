@@ -14,7 +14,7 @@ import kotlin.jvm.JvmSynthetic
  *
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@OptIn(ExperimentalJsExport::class)
 @JsExport
 internal class KeccakMath {
     internal companion object {
@@ -28,7 +28,7 @@ internal class KeccakMath {
 
             bytes.copyInto(paddedBytes)
             paddedBytes[bytes.size] = flexiByte.toByte() or (0b1 shl (flexiByte.bitIndex + 1)).toByte()
-            paddedBytes[paddedBytes.lastIndex] = paddedBytes[paddedBytes.lastIndex] or (0b10000000u).toByte()
+            paddedBytes[paddedBytes.lastIndex] = paddedBytes[paddedBytes.lastIndex] or (-128).toByte()
 
             return paddedBytes
         }
@@ -66,46 +66,99 @@ internal class KeccakMath {
          * Do a single Keccak-f permutation round.
          */
         @JvmSynthetic
-        fun doRound(state: Array<ULongArray>, round: Int): Array<ULongArray> {
-            //Theta (Parity Calculation)
-            val c = ULongArray(5) {
-                x -> state[x].reduce(ULong::xor)
-            }
-            val d = ULongArray(5) {
-                x -> c[(x + 4) % 5] xor c[(x + 1) % 5].rotateLeft(1)
-            }
-            val newState = Array(5) {
-                x -> ULongArray(5) {
-                    y -> state[x][y] xor d[x]
-                }
-            }
+        fun doRound(state: Array<LongArray>, round: Int): Array<LongArray> {
+            //Theta (Parity Calculation) + Rho (Rotate bits) + Pi (Rearrange lanes)
+            val c = longArrayOf(
+                state[0][0] xor state[0][1] xor state[0][2] xor state[0][3] xor state[0][4],
+                state[1][0] xor state[1][1] xor state[1][2] xor state[1][3] xor state[1][4],
+                state[2][0] xor state[2][1] xor state[2][2] xor state[2][3] xor state[2][4],
+                state[3][0] xor state[3][1] xor state[3][2] xor state[3][3] xor state[3][4],
+                state[4][0] xor state[4][1] xor state[4][2] xor state[4][3] xor state[4][4]
+            )
 
-            //Rho + Pi (Rotate bits and rearrange lanes)
-            val piState = Array(5) { ULongArray(5) }
-            for (x in 0..<5)
-                for (y in 0..<5) {
-                    val rearrangedIndex = (x + (3 * y)) % 5
-                    piState[x][y] = newState[rearrangedIndex][x].rotateLeft(KeccakConstants.SHIFTS[rearrangedIndex][x])
-                }
+            val d = longArrayOf(
+                c[4] xor c[1].rotateLeft(1),
+                c[0] xor c[2].rotateLeft(1),
+                c[1] xor c[3].rotateLeft(1),
+                c[2] xor c[4].rotateLeft(1),
+                c[3] xor c[0].rotateLeft(1)
+            )
 
-            //Chi (XOR lanes)
-            val chiState = Array(5) {
-                x -> ULongArray(5) {
-                    y -> piState[x][y] xor ((piState[(x + 1) % 5][y] xor ULong.MAX_VALUE) and piState[(x + 2) % 5][y])
-                }
-            }
+            val newState = arrayOf(
+                longArrayOf(
+                    (state[0][0] xor d[0]).rotateLeft(0),
+                    (state[3][0] xor d[3]).rotateLeft(28),
+                    (state[1][0] xor d[1]).rotateLeft(1),
+                    (state[4][0] xor d[4]).rotateLeft(27),
+                    (state[2][0] xor d[2]).rotateLeft(62)),
+                longArrayOf(
+                    (state[1][1] xor d[1]).rotateLeft(44),
+                    (state[4][1] xor d[4]).rotateLeft(20),
+                    (state[2][1] xor d[2]).rotateLeft(6),
+                    (state[0][1] xor d[0]).rotateLeft(36),
+                    (state[3][1] xor d[3]).rotateLeft(55)),
+                longArrayOf(
+                    (state[2][2] xor d[2]).rotateLeft(43),
+                    (state[0][2] xor d[0]).rotateLeft(3),
+                    (state[3][2] xor d[3]).rotateLeft(25),
+                    (state[1][2] xor d[1]).rotateLeft(10),
+                    (state[4][2] xor d[4]).rotateLeft(39)),
+                longArrayOf(
+                    (state[3][3] xor d[3]).rotateLeft(21),
+                    (state[1][3] xor d[1]).rotateLeft(45),
+                    (state[4][3] xor d[4]).rotateLeft(8),
+                    (state[2][3] xor d[2]).rotateLeft(15),
+                    (state[0][3] xor d[0]).rotateLeft(41)),
+                longArrayOf(
+                    (state[4][4] xor d[4]).rotateLeft(14),
+                    (state[2][4] xor d[2]).rotateLeft(61),
+                    (state[0][4] xor d[0]).rotateLeft(18),
+                    (state[3][4] xor d[3]).rotateLeft(56),
+                    (state[1][4] xor d[1]).rotateLeft(2))
+            )
 
-            //Iota (Modify the first lane with a predefined value unique for each round)
-            chiState[0][0] = chiState[0][0] xor KeccakConstants.ROUND[round]
+            //Chi (XOR lanes) + Iota (Modify the first lane with a predefined value unique for each round)
+            val finalState = arrayOf(
+                longArrayOf(
+                    newState[0][0] xor ((newState[1][0] xor (-1L)) and newState[2][0]) xor KeccakConstants.ROUND[round],
+                    newState[0][1] xor ((newState[1][1] xor (-1L)) and newState[2][1]),
+                    newState[0][2] xor ((newState[1][2] xor (-1L)) and newState[2][2]),
+                    newState[0][3] xor ((newState[1][3] xor (-1L)) and newState[2][3]),
+                    newState[0][4] xor ((newState[1][4] xor (-1L)) and newState[2][4])),
+                longArrayOf(
+                    newState[1][0] xor ((newState[2][0] xor (-1L)) and newState[3][0]),
+                    newState[1][1] xor ((newState[2][1] xor (-1L)) and newState[3][1]),
+                    newState[1][2] xor ((newState[2][2] xor (-1L)) and newState[3][2]),
+                    newState[1][3] xor ((newState[2][3] xor (-1L)) and newState[3][3]),
+                    newState[1][4] xor ((newState[2][4] xor (-1L)) and newState[3][4])),
+                longArrayOf(
+                    newState[2][0] xor ((newState[3][0] xor (-1L)) and newState[4][0]),
+                    newState[2][1] xor ((newState[3][1] xor (-1L)) and newState[4][1]),
+                    newState[2][2] xor ((newState[3][2] xor (-1L)) and newState[4][2]),
+                    newState[2][3] xor ((newState[3][3] xor (-1L)) and newState[4][3]),
+                    newState[2][4] xor ((newState[3][4] xor (-1L)) and newState[4][4])),
+                longArrayOf(
+                    newState[3][0] xor ((newState[4][0] xor (-1L)) and newState[0][0]),
+                    newState[3][1] xor ((newState[4][1] xor (-1L)) and newState[0][1]),
+                    newState[3][2] xor ((newState[4][2] xor (-1L)) and newState[0][2]),
+                    newState[3][3] xor ((newState[4][3] xor (-1L)) and newState[0][3]),
+                    newState[3][4] xor ((newState[4][4] xor (-1L)) and newState[0][4])),
+                longArrayOf(
+                    newState[4][0] xor ((newState[0][0] xor (-1L)) and newState[1][0]),
+                    newState[4][1] xor ((newState[0][1] xor (-1L)) and newState[1][1]),
+                    newState[4][2] xor ((newState[0][2] xor (-1L)) and newState[1][2]),
+                    newState[4][3] xor ((newState[0][3] xor (-1L)) and newState[1][3]),
+                    newState[4][4] xor ((newState[0][4] xor (-1L)) and newState[1][4]))
+            )
 
-            return chiState
+            return finalState
         }
 
         /**
          * Do the full 24 rounds to complete a permutation.
          */
         @JvmSynthetic
-        fun permute(state: Array<ULongArray>): Array<ULongArray> {
+        fun permute(state: Array<LongArray>): Array<LongArray> {
             var newState = state.copyOf()
 
             for(i in 0..<24)
@@ -118,15 +171,15 @@ internal class KeccakMath {
          * Convert up to 200 bytes into a state matrix.
          */
         @JvmSynthetic
-        fun bytesToMatrix(bytes: ByteArray): Array<ULongArray> {
-            val state = Array(5) { ULongArray(5) }
+        fun bytesToMatrix(bytes: ByteArray): Array<LongArray> {
+            val state = Array(5) { LongArray(5) }
 
             val emptyByteArray = ByteArray(200)
             bytes.copyInto(emptyByteArray)
 
             for(x in 0..<5)
                 for(y in 0..<5)
-                    state[x][y] = bytesToULong(emptyByteArray.copyOfRange((x + (5 * y)) shl 3, ((x + (5 * y)) shl 3) + 8))
+                    state[x][y] = bytesToLong(emptyByteArray.copyOfRange((x + (5 * y)) shl 3, ((x + (5 * y)) shl 3) + 8))
 
             return state
         }
@@ -135,59 +188,58 @@ internal class KeccakMath {
          * Convert a state matrix into an array of 200 bytes.
          */
         @JvmSynthetic
-        fun matrixToBytes(state: Array<ULongArray>): ByteArray {
+        fun matrixToBytes(state: Array<LongArray>): ByteArray {
             val emptyByteArray = ByteArray(200)
 
             for(x in 0..<5)
                 for(y in 0..<5) {
-                    val ulongBytes = ulongToBytes(state[x][y])
+                    val longBytes = longToBytes(state[x][y])
                     val index = ((x + (5 * y)) shl 3)
 
-                    emptyByteArray[index] = ulongBytes[0]
-                    emptyByteArray[index + 1] = ulongBytes[1]
-                    emptyByteArray[index + 2] = ulongBytes[2]
-                    emptyByteArray[index + 3] = ulongBytes[3]
-                    emptyByteArray[index + 4] = ulongBytes[4]
-                    emptyByteArray[index + 5] = ulongBytes[5]
-                    emptyByteArray[index + 6] = ulongBytes[6]
-                    emptyByteArray[index + 7] = ulongBytes[7]
+                    emptyByteArray[index] = longBytes[0]
+                    emptyByteArray[index + 1] = longBytes[1]
+                    emptyByteArray[index + 2] = longBytes[2]
+                    emptyByteArray[index + 3] = longBytes[3]
+                    emptyByteArray[index + 4] = longBytes[4]
+                    emptyByteArray[index + 5] = longBytes[5]
+                    emptyByteArray[index + 6] = longBytes[6]
+                    emptyByteArray[index + 7] = longBytes[7]
                 }
 
             return emptyByteArray
         }
 
         /**
-         * ULong to ByteArray conversion.
+         * Long to ByteArray conversion.
          */
         @JvmSynthetic
-        fun ulongToBytes(long: ULong): ByteArray {
+        fun longToBytes(long: Long): ByteArray {
             return byteArrayOf(
-                long.toUByte().toByte(),
-                (long shr 8).toUByte().toByte(),
-                (long shr 16).toUByte().toByte(),
-                (long shr 24).toUByte().toByte(),
-                (long shr 32).toUByte().toByte(),
-                (long shr 40).toUByte().toByte(),
-                (long shr 48).toUByte().toByte(),
-                (long shr 56).toUByte().toByte()
+                (long and 0xFF).toByte(),
+                ((long shr 8) and 0xFF).toByte(),
+                ((long shr 16) and 0xFF).toByte(),
+                ((long shr 24) and 0xFF).toByte(),
+                ((long shr 32) and 0xFF).toByte(),
+                ((long shr 40) and 0xFF).toByte(),
+                ((long shr 48) and 0xFF).toByte(),
+                ((long shr 56) and 0xFF).toByte()
             )
         }
 
         /**
-         * ByteArray(length: 8) to ULong conversion.
+         * ByteArray(size: 8) to Long conversion.
          */
         @JvmSynthetic
-        fun bytesToULong(bytes: ByteArray): ULong {
+        fun bytesToLong(bytes: ByteArray): Long {
             require(bytes.size == 8) { "Requires 8 bytes! Size: " + bytes.size }
-
-            return (bytes[0].toULong() and 0xFFuL) or
-                    ((bytes[1].toULong() and 0xFFuL) shl 8)   or
-                    ((bytes[2].toULong() and 0xFFuL) shl 16)  or
-                    ((bytes[3].toULong() and 0xFFuL) shl 24)  or
-                    ((bytes[4].toULong() and 0xFFuL) shl 32)  or
-                    ((bytes[5].toULong() and 0xFFuL) shl 40)  or
-                    ((bytes[6].toULong() and 0xFFuL) shl 48)  or
-                    ((bytes[7].toULong() and 0xFFuL) shl 56)
+            return (bytes[0].toLong() and 0xFF) or
+                    ((bytes[1].toLong() and 0xFF) shl 8)   or
+                    ((bytes[2].toLong() and 0xFF) shl 16)  or
+                    ((bytes[3].toLong() and 0xFF) shl 24)  or
+                    ((bytes[4].toLong() and 0xFF) shl 32)  or
+                    ((bytes[5].toLong() and 0xFF) shl 40)  or
+                    ((bytes[6].toLong() and 0xFF) shl 48)  or
+                    (bytes[7].toLong() shl 56)
         }
     }
 }

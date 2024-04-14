@@ -44,3 +44,4 @@ bin/
 /maven/
 /npm/kotlin/*
 /npm/package.json
+/.gnupg/

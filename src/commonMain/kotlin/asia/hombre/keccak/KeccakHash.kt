@@ -54,7 +54,7 @@ sealed class KeccakHash {
 
             //Absorption
             var inputOffset = 0
-            var state = Array(5) { ULongArray(5) }
+            var state = Array(5) { LongArray(5) }
 
             while(inputOffset != paddedBytes.size) {
                 val permutationState = KeccakMath.bytesToMatrix(paddedBytes.copyOfRange(inputOffset, min(paddedBytes.size, inputOffset + parameters.BYTERATE)))
