@@ -39,12 +39,12 @@ At the 1.0.0 release, developers from various platforms should be able to use th
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:0.1.3")
+    implementation("asia.hombre:keccak:0.2.0")
 }
 ```
 NPM
 ```text
-npm install keccakkotlin@0.1.3
+npm install keccakkotlin@0.2.0
 ```
 
 ## Usage
