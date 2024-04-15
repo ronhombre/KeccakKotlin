@@ -120,35 +120,35 @@ internal class KeccakMath {
             //Chi (XOR lanes) + Iota (Modify the first lane with a predefined value unique for each round)
             val finalState = arrayOf(
                 longArrayOf(
-                    newState[0][0] xor ((newState[1][0] xor (-1L)) and newState[2][0]) xor KeccakConstants.ROUND[round],
-                    newState[0][1] xor ((newState[1][1] xor (-1L)) and newState[2][1]),
-                    newState[0][2] xor ((newState[1][2] xor (-1L)) and newState[2][2]),
-                    newState[0][3] xor ((newState[1][3] xor (-1L)) and newState[2][3]),
-                    newState[0][4] xor ((newState[1][4] xor (-1L)) and newState[2][4])),
+                    newState[0][0] xor (newState[1][0].inv() and newState[2][0]) xor KeccakConstants.ROUND[round],
+                    newState[0][1] xor (newState[1][1].inv() and newState[2][1]),
+                    newState[0][2] xor (newState[1][2].inv() and newState[2][2]),
+                    newState[0][3] xor (newState[1][3].inv() and newState[2][3]),
+                    newState[0][4] xor (newState[1][4].inv() and newState[2][4])),
                 longArrayOf(
-                    newState[1][0] xor ((newState[2][0] xor (-1L)) and newState[3][0]),
-                    newState[1][1] xor ((newState[2][1] xor (-1L)) and newState[3][1]),
-                    newState[1][2] xor ((newState[2][2] xor (-1L)) and newState[3][2]),
-                    newState[1][3] xor ((newState[2][3] xor (-1L)) and newState[3][3]),
-                    newState[1][4] xor ((newState[2][4] xor (-1L)) and newState[3][4])),
+                    newState[1][0] xor (newState[2][0].inv() and newState[3][0]),
+                    newState[1][1] xor (newState[2][1].inv() and newState[3][1]),
+                    newState[1][2] xor (newState[2][2].inv() and newState[3][2]),
+                    newState[1][3] xor (newState[2][3].inv() and newState[3][3]),
+                    newState[1][4] xor (newState[2][4].inv() and newState[3][4])),
                 longArrayOf(
-                    newState[2][0] xor ((newState[3][0] xor (-1L)) and newState[4][0]),
-                    newState[2][1] xor ((newState[3][1] xor (-1L)) and newState[4][1]),
-                    newState[2][2] xor ((newState[3][2] xor (-1L)) and newState[4][2]),
-                    newState[2][3] xor ((newState[3][3] xor (-1L)) and newState[4][3]),
-                    newState[2][4] xor ((newState[3][4] xor (-1L)) and newState[4][4])),
+                    newState[2][0] xor (newState[3][0].inv() and newState[4][0]),
+                    newState[2][1] xor (newState[3][1].inv() and newState[4][1]),
+                    newState[2][2] xor (newState[3][2].inv() and newState[4][2]),
+                    newState[2][3] xor (newState[3][3].inv() and newState[4][3]),
+                    newState[2][4] xor (newState[3][4].inv() and newState[4][4])),
                 longArrayOf(
-                    newState[3][0] xor ((newState[4][0] xor (-1L)) and newState[0][0]),
-                    newState[3][1] xor ((newState[4][1] xor (-1L)) and newState[0][1]),
-                    newState[3][2] xor ((newState[4][2] xor (-1L)) and newState[0][2]),
-                    newState[3][3] xor ((newState[4][3] xor (-1L)) and newState[0][3]),
-                    newState[3][4] xor ((newState[4][4] xor (-1L)) and newState[0][4])),
+                    newState[3][0] xor (newState[4][0].inv() and newState[0][0]),
+                    newState[3][1] xor (newState[4][1].inv() and newState[0][1]),
+                    newState[3][2] xor (newState[4][2].inv() and newState[0][2]),
+                    newState[3][3] xor (newState[4][3].inv() and newState[0][3]),
+                    newState[3][4] xor (newState[4][4].inv() and newState[0][4])),
                 longArrayOf(
-                    newState[4][0] xor ((newState[0][0] xor (-1L)) and newState[1][0]),
-                    newState[4][1] xor ((newState[0][1] xor (-1L)) and newState[1][1]),
-                    newState[4][2] xor ((newState[0][2] xor (-1L)) and newState[1][2]),
-                    newState[4][3] xor ((newState[0][3] xor (-1L)) and newState[1][3]),
-                    newState[4][4] xor ((newState[0][4] xor (-1L)) and newState[1][4]))
+                    newState[4][0] xor (newState[0][0].inv() and newState[1][0]),
+                    newState[4][1] xor (newState[0][1].inv() and newState[1][1]),
+                    newState[4][2] xor (newState[0][2].inv() and newState[1][2]),
+                    newState[4][3] xor (newState[0][3].inv() and newState[1][3]),
+                    newState[4][4] xor (newState[0][4].inv() and newState[1][4]))
             )
 
             return finalState
