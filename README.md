@@ -1,4 +1,5 @@
-# KeccakKotlin implements SHA-3 Hash Functions
+# KeccakKotlin
+## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
 [![Maven Central](https://img.shields.io/maven-central/v/asia.hombre/keccak.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22asia.hombre%22)
@@ -13,12 +14,7 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 
 This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend on any third-party library.
 
-> [!WARNING]
-> KeccakKotlin is in **ALPHA** stage. We are confident it works, but we aren't 100% sure yet.
-
-### Intent
-
-At the 1.0.0 release, developers from various platforms should be able to use this library if they want to support SHA-3.
+This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
 ## Capabilities
 * SHA3-224
@@ -39,12 +35,12 @@ At the 1.0.0 release, developers from various platforms should be able to use th
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:0.2.0")
+    implementation("asia.hombre:keccak:1.0.0")
 }
 ```
 NPM
 ```text
-npm install keccakkotlin@0.2.0
+npm install keccakkotlin@1.0.0
 ```
 
 ## Usage
