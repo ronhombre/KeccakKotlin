@@ -28,7 +28,6 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 ## Supported & Tested Platforms
 * JVM (Kotlin, Java)
 * JS (Node, Bun)
-* Native (Windows)
 
 ## Installation
 Maven/Gradle
