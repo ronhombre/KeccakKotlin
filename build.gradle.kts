@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "0.2.0"
+version = "1.0.0"
 description = "SHA-3 Hash Functions in Kotlin"
 
 val projectName = "keccak"
@@ -33,11 +33,6 @@ kotlin {
 
         }
         binaries.executable()
-    }
-    mingwX64("windows") {
-        binaries {
-            sharedLib {  }
-        }
     }
     sourceSets {
         val commonMain by getting {

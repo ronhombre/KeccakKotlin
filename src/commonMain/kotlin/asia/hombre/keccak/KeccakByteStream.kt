@@ -3,6 +3,7 @@ package asia.hombre.keccak
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.js.JsName
 import kotlin.math.min
 
 /**
@@ -13,14 +14,15 @@ import kotlin.math.min
  * @constructor Generates a hash based on the [KeccakParameter] during absorption.
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalUnsignedTypes::class, ExperimentalJsExport::class)
+@OptIn(ExperimentalJsExport::class)
 @JsExport
 class KeccakByteStream(val parameters: KeccakParameter) {
     private var state = Array(5) { LongArray(5) }
     private var buffer: ByteArray = ByteArray(parameters.BYTERATE)
-    private var index = -1
+    private var absorbBuffer: ByteArray = ByteArray(parameters.BYTERATE)
+    private var absorbOffset: Int = 0
+    private var index = -1 //This negative 1 identifies that this stream has not been squeezed yet.
     private var outputted = 0
-    private var isFirstSqueeze = true
 
     val hasNext: Boolean
         get() {
@@ -35,30 +37,53 @@ class KeccakByteStream(val parameters: KeccakParameter) {
     fun reset() {
         state = Array(5) { LongArray(5) }
         buffer = ByteArray(parameters.BYTERATE)
-        isFirstSqueeze = true
+        absorbBuffer = ByteArray(parameters.BYTERATE)
+        absorbOffset = 0
+        index = -1
+        outputted = 0
     }
 
     /**
      * Absorb a byte array into the Keccak sponge construction.
+     *
+     * This method can be called multiple times and each byte array is concatenated after the bytes that preceded them.
      */
     fun absorb(byteArray: ByteArray) {
-        if(!isFirstSqueeze) reset()
+        if (index >= 0) throw IllegalStateException("This KeccakByteStream has already been squeezed.")
 
-        val paddedBytes = KeccakMath.pad10n1(byteArray, parameters.BITRATE, parameters.SUFFIX)
-
-        //Absorption
         var inputOffset = 0
 
-        while(inputOffset != paddedBytes.size) {
-            val permutationState = KeccakMath.bytesToMatrix(paddedBytes.copyOfRange(inputOffset, min(paddedBytes.size, inputOffset + parameters.BYTERATE)))
-            for(x in 0..<5)
-                for(y in 0..<5)
-                    state[x][y] = state[x][y] xor permutationState[x][y]
-            state = KeccakMath.permute(state)
-            inputOffset += parameters.BYTERATE
-        }
+        while (inputOffset < byteArray.size) {
+            val remainingBytes = byteArray.size - inputOffset
+            val absorbCapacityLeft = absorbBuffer.size - absorbOffset
+            val bytesToCopy = min(absorbCapacityLeft, remainingBytes)
 
-        squeeze()
+            byteArray.copyInto(absorbBuffer, absorbOffset, inputOffset, inputOffset + bytesToCopy)
+            absorbOffset += bytesToCopy
+            inputOffset += bytesToCopy
+
+            if (absorbOffset == absorbBuffer.size) {
+                val permutationState = KeccakMath.bytesToMatrix(absorbBuffer)
+                for (x in 0 until 5)
+                    for (y in 0 until 5)
+                        state[x][y] = state[x][y] xor permutationState[x][y]
+
+                state = KeccakMath.permute(state)
+                absorbOffset = 0
+            }
+        }
+    }
+
+    /**
+     * Absorbs a singular byte into the sponge construction.
+     *
+     * This method concatenates this byte after the bytes that preceded it.
+     *
+     * Equivalent to: `absorb(byteArrayOf(byte))`
+     */
+    @JsName("absorbByte")
+    fun absorb(byte: Byte) {
+        absorb(byteArrayOf(byte))
     }
 
     /**
@@ -68,27 +93,30 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      * @throws IndexOutOfBoundsException when the Keccak parameter is not extendable and the internal state runs out of bytes.
      */
     fun next(): Byte {
-        val canContinue = (parameters.maxLength == 0 || outputted < (parameters.minLength / 8))
-        if(++index >= parameters.BYTERATE && canContinue) {
+        if (index >= parameters.BYTERATE || index < 0) {
+            if (parameters.maxLength != 0 && outputted >= parameters.minLength / 8)
+                throw IndexOutOfBoundsException(
+                    "There are no further bytes to read. This is the limit of this Keccak parameter."
+                )
             squeeze()
-            index++
         }
-        else if(!canContinue)
-            throw IndexOutOfBoundsException("There is no further bytes to read. This is the limit of this Keccak parameter.")
 
-        outputted++
-
-        return buffer[index]
+        return buffer[index++].also { outputted++ }
     }
 
     /**
      * Squeeze a new buffer from the state.
      */
     private fun squeeze() {
-        if(!isFirstSqueeze)
-            state = KeccakMath.permute(state)
-        KeccakMath.matrixToBytes(state).copyInto(buffer, 0, 0, parameters.BYTERATE)
-        index = -1
-        isFirstSqueeze = false
+        //Absorb the rest of the bytes.
+        if(index < 0) absorb(KeccakMath.supplyPadding(absorbOffset, parameters.BITRATE, parameters.SUFFIX))
+        //Permute the internal state if more bytes are needed.
+        else state = KeccakMath.permute(state)
+
+        KeccakMath
+            .matrixToBytes(state)
+            .copyInto(buffer, 0, 0, parameters.BYTERATE)
+
+        index = 0
     }
 }

@@ -4,7 +4,6 @@ import kotlin.experimental.or
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlin.jvm.JvmStatic
-import kotlin.jvm.JvmSynthetic
 import kotlin.math.min
 
 /**
