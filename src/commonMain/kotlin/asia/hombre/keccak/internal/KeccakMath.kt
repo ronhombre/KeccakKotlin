@@ -172,7 +172,7 @@ internal object KeccakMath {
      */
     @JvmSynthetic
     fun permute(state: Array<LongArray>): Array<LongArray> {
-        var newState = state.copyOf()
+        var newState = state
 
         for(i in 0..<24)
             newState = doRound(newState, i)
