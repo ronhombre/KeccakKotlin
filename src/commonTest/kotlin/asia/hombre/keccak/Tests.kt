@@ -12,25 +12,7 @@ import kotlin.test.assertTrue
 class Tests {
     @Test
     fun playground() {
-        /*val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
-        println(sha3_224.toHexString(HexFormat.UpperCase))
-        val sha3_256 = KeccakHash.generate(KeccakParameter.SHA3_256, "".encodeToByteArray())
-        println(sha3_256.toHexString(HexFormat.UpperCase))
-        val sha3_384 = KeccakHash.generate(KeccakParameter.SHA3_384, "".encodeToByteArray())
-        println(sha3_384.toHexString(HexFormat.UpperCase))
-        val sha3_512 = KeccakHash.generate(KeccakParameter.SHA3_512, "".encodeToByteArray())
-        println(sha3_512.toHexString(HexFormat.UpperCase))
 
-        //Extendable-Output Functions
-        //A third parameter called 'lengthInBytes' is used to modify the output length.
-        val rawshake_128 = KeccakHash.generate(KeccakParameter.RAWSHAKE_128, "".encodeToByteArray())
-        println(rawshake_128.toHexString(HexFormat.UpperCase))
-        val rawshake_256 = KeccakHash.generate(KeccakParameter.RAWSHAKE_256, "".encodeToByteArray())
-        println(rawshake_256.toHexString(HexFormat.UpperCase))
-        val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
-        println(shake_128.toHexString(HexFormat.UpperCase))
-        val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
-        println(shake_256.toHexString(HexFormat.UpperCase))*/
     }
 
     //Ensure that padding optimizations are equal.
@@ -45,6 +27,28 @@ class Tests {
                 val inputBytes = input.encodeToByteArray()
                 val paddedInput = KeccakMath.pad10n1(inputBytes, param.BITRATE, param.SUFFIX)
                 val comparedPaddedInput = KeccakMath.pad10n1Flex(FlexiByteArray(inputBytes) + param.SUFFIX, param.BITRATE).toByteArray()
+
+                assertContentEquals(paddedInput, comparedPaddedInput, "Padding equality failed at $input with length: " + input.length + " on Parameter: " + param.name + "!")
+            }
+        }
+    }
+
+    //Ensure that the supplied padding is equivalent to the normal padding functions.
+    @Test
+    fun SUPPLIED_PADDING_EQUALITY() {
+        for(p in KeccakParameter.entries.indices) {
+            val param = KeccakParameter.entries[p]
+            val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            var input = ""
+            for(i in 0..<param.BYTERATE * 2) {
+                input += alphabet[Random.nextInt(0, 52)]
+                val inputBytes = input.encodeToByteArray()
+                val paddedInput = KeccakMath.pad10n1(inputBytes, param.BITRATE, param.SUFFIX)
+                val suppliedPadding = KeccakMath.supplyPadding(inputBytes.size, param.BITRATE, param.SUFFIX)
+                val comparedPaddedInput = ByteArray(inputBytes.size + suppliedPadding.size)
+
+                inputBytes.copyInto(comparedPaddedInput)
+                suppliedPadding.copyInto(comparedPaddedInput, inputBytes.size)
 
                 assertContentEquals(paddedInput, comparedPaddedInput, "Padding equality failed at $input with length: " + input.length + " on Parameter: " + param.name + "!")
             }
@@ -145,7 +149,6 @@ class Tests {
         assertTrue(expectedFinal.contentDeepEquals(final), "Incorrect Experimental SHAKE128 final state from 1600 bit input!")
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun longToBytesConversion() {
         val randomLong = Random.nextLong()
@@ -153,5 +156,43 @@ class Tests {
         val convertedLong = KeccakMath.bytesToLong(bytes)
 
         assertEquals(randomLong, convertedLong, "Unequal Long Conversion!")
+    }
+
+    @Test
+    fun STREAM_ABSORPTION() {
+        for(parameter in KeccakParameter.entries)
+            streamAbsorptionIndividual(parameter)
+    }
+
+    fun streamAbsorptionIndividual(parameter: KeccakParameter) {
+        val bytes = Random.nextBytes(parameter.BYTERATE + 1)
+
+        var i: Int
+        val outputA = ByteArray(parameter.minLength / 8)
+
+        val streamA = KeccakByteStream(parameter)
+
+        streamA.absorb(bytes)
+
+        i = 0
+        while(streamA.hasNext && i < outputA.size) {
+            outputA[i++] = streamA.next()
+        }
+
+        val outputB = ByteArray(parameter.minLength / 8)
+
+        val streamB = KeccakByteStream(parameter)
+
+        streamB.absorb(bytes.copyOfRange(0, 32))
+        streamB.absorb(bytes.copyOfRange(32, bytes.size - 1))
+        streamB.absorb(bytes.copyOfRange(bytes.size - 1, bytes.size))
+
+        i = 0
+        while(streamB.hasNext && i < outputB.size) {
+            outputB[i++] = streamB.next()
+        }
+
+        println("Absorption tested for ${parameter.name}")
+        assertContentEquals(outputA, outputB, "Stream Absorption failed for ${parameter.name}!")
     }
 }
