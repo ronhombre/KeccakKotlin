@@ -64,6 +64,21 @@ val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteAr
 println(shake_128.toHexString(HexFormat.UpperCase))
 val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
 println(shake_256.toHexString(HexFormat.UpperCase))
+
+//Byte Streaming
+val input = "".encodeToByteArray()
+val rawshake_128_stream = KeccakByteStream(KeccakParameter.RAWSHAKE_128)
+rawshake_128_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
+rawshake_128_stream.next() //Automatically generates more bytes
+val rawshake_256_stream = KeccakByteStream(KeccakParameter.RAWSHAKE_256)
+rawshake_256_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
+rawshake_256_stream.next() //Automatically generates more bytes
+val shake_128_stream = KeccakByteStream(KeccakParameter.SHAKE_128)
+shake_128_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
+shake_128_stream.next() //Automatically generates more bytes
+val shake_256_stream = KeccakByteStream(KeccakParameter.SHAKE_256)
+shake_256_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
+shake_256_stream.next() //Automatically generates more bytes
 ```
 
 ## Documentation
