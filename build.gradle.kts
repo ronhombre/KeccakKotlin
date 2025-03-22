@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "1.0.0"
+version = "1.1.0"
 description = "SHA-3 Hash Functions in Kotlin"
 
 val projectName = "keccak"
@@ -24,9 +24,7 @@ repositories {
 }
 
 kotlin {
-    jvm {
-
-    }
+    jvm()
     js(IR) {
         nodejs()
         browser {
@@ -34,12 +32,15 @@ kotlin {
         }
         binaries.executable()
     }
+    linuxX64()
+    mingwX64()
+    iosArm64()
+    iosX64()
+    iosSimulatorArm64()
+    androidNativeArm32()
+    androidNativeArm64()
+    androidNativeX64()
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-
-            }
-        }
         val commonTest by getting {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test")
