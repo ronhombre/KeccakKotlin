@@ -220,7 +220,7 @@ tasks.dokkaHtml.configure {
 tasks.withType<DokkaTask>().configureEach {
     val dokkaBaseConfiguration = """
     {
-      "footerMessage": "(C) 2024 Ron Lauren Hombre"
+      "footerMessage": "(C) 2025 Ron Lauren Hombre"
     }
     """
     pluginsMapConfiguration.set(
