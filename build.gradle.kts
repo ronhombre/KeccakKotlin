@@ -33,6 +33,7 @@ kotlin {
         binaries.executable()
     }
     linuxX64()
+    linuxArm64()
     mingwX64()
     iosArm64()
     iosX64()

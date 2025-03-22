@@ -8,6 +8,10 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 ![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)
 ![JS](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Linux Arm64 & X64](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Windows X64](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![iOS Arm64 & X64](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white)
+![Android Arm32, Arm64, & X64](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
 ## Introduction
 
@@ -25,20 +29,34 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 * SHAKE128 (Extendable, Byte Stream-able)
 * SHAKE256 (Extendable, Byte Stream-able)
 
-## Supported & Tested Platforms
+## Tested Platforms
 * JVM (Kotlin, Java)
 * JS (Node, Bun)
+
+## Supported Platforms
+
+| Target                    | Arm32              | Arm64              | X64                |
+|---------------------------|--------------------|--------------------|--------------------|
+| JVM (Kotlin & Java)       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| JS (Node, Bun, & Browser) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Linux                     | :x: *              | :white_check_mark: | :white_check_mark: |
+| Windows (Mingw)           | :x: *              | :x: *              | :white_check_mark: |
+| Android                   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| iOS                       | :x: *              | :white_check_mark: | :white_check_mark: |
+| iOS Simulator             | :x: *              | :white_check_mark: | :x: *              |
+
+*Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
 
 ## Installation
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:1.0.0")
+    implementation("asia.hombre:keccak:1.1.0")
 }
 ```
 NPM
 ```text
-npm install keccakkotlin@1.0.0
+npm install keccakkotlin@1.1.0
 ```
 
 ## Usage
