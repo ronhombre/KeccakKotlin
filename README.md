@@ -39,13 +39,15 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 |---------------------------|--------------------|--------------------|--------------------|
 | JVM (Kotlin & Java)       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | JS (Node, Bun, & Browser) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Linux                     | :x: *              | :white_check_mark: | :white_check_mark: |
+| Linux                     | :x: *              | :x: **             | :white_check_mark: |
 | Windows (Mingw)           | :x: *              | :x: *              | :white_check_mark: |
 | Android                   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| iOS                       | :x: *              | :white_check_mark: | :white_check_mark: |
-| iOS Simulator             | :x: *              | :white_check_mark: | :x: *              |
+| iOS                       | :x: *              | :x: **             | :x: **             |
+| iOS Simulator             | :x: *              | :x: **             | :x: *              |
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
+
+**These targets are currently available, but I have no ability to compile them **yet**. Once I have more free time, I will setup a publishing server to compile to all targets.
 
 ## Installation
 Maven/Gradle
