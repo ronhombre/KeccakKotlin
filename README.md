@@ -95,6 +95,11 @@ println(sha3_384.toHexString(HexFormat.UpperCase))
 val sha3_512 = SHA3_512().digest()
 println(sha3_512.toHexString(HexFormat.UpperCase))
 
+val kmac_128 = KMAC128("key".encodeToByteArray(), 32).digest()
+println(kmac_128.toHexString(HexFormat.UpperCase))
+val kmac_256 = KMAC256("key".encodeToByteArray(), 64).digest()
+println(kmac_256.toHexString(HexFormat.UpperCase))
+
 //Extendable-Output Functions
 //A third parameter called 'lengthInBytes' is used to modify the output length.
 val rawshake_128 = RawSHAKE128().digest()
@@ -105,6 +110,14 @@ val shake_128 = SHAKE128().digest()
 println(shake_128.toHexString(HexFormat.UpperCase))
 val shake_256 = SHAKE256().digest()
 println(shake_256.toHexString(HexFormat.UpperCase))
+val cshake_128 = cSHAKE128().digest()
+println(cshake_128.toHexString(HexFormat.UpperCase))
+val cshake_256 = cSHAKE256().digest()
+println(cshake_256.toHexString(HexFormat.UpperCase))
+val kmacxof_128 = KMACXOF128("key".encodeToByteArray()).digest()
+println(kmacxof_128.toHexString(HexFormat.UpperCase))
+val kmacxof_256 = KMACXOF256("key".encodeToByteArray()).digest()
+println(kmacxof_256.toHexString(HexFormat.UpperCase))
 
 //Input Streaming
 val shake128_in = SHAKE128.newInputStream()
