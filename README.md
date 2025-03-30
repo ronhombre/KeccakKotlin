@@ -101,7 +101,6 @@ val kmac_256 = KMAC256("key".encodeToByteArray(), 64).digest()
 println(kmac_256.toHexString(HexFormat.UpperCase))
 
 //Extendable-Output Functions
-//A third parameter called 'lengthInBytes' is used to modify the output length.
 val rawshake_128 = RawSHAKE128().digest()
 println(rawshake_128.toHexString(HexFormat.UpperCase))
 val rawshake_256 = RawSHAKE256().digest()
