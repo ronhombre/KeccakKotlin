@@ -1,9 +1,24 @@
+/*
+ * Copyright 2025 Ron Lauren Hombre
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *        and included as LICENSE.txt in this Project.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package asia.hombre.keccak
 
 import asia.hombre.keccak.internal.KeccakMath
-import kotlin.js.ExperimentalJsExport
-import kotlin.js.JsExport
-import kotlin.js.JsName
 import kotlin.math.min
 
 /**
@@ -14,9 +29,8 @@ import kotlin.math.min
  * @constructor Generates a hash based on the [KeccakParameter] during absorption.
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalJsExport::class)
-@JsExport
-class KeccakByteStream(val parameters: KeccakParameter) {
+@Deprecated("Use the Standard API instead.", level = DeprecationLevel.WARNING)
+class KeccakByteStream(val parameters: KeccakParameter, val functionName: String = "", val customization: String = "") {
     private var state = Array(5) { LongArray(5) }
     private var buffer: ByteArray = ByteArray(parameters.BYTERATE)
     private var absorbBuffer: ByteArray = ByteArray(parameters.BYTERATE)
@@ -81,7 +95,6 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      *
      * Equivalent to: `absorb(byteArrayOf(byte))`
      */
-    @JsName("absorbByte")
     fun absorb(byte: Byte) {
         absorb(byteArrayOf(byte))
     }
@@ -108,8 +121,18 @@ class KeccakByteStream(val parameters: KeccakParameter) {
      * Squeeze a new buffer from the state.
      */
     private fun squeeze() {
+        val useSuffix = when(parameters) {
+            KeccakParameter.CSHAKE_128,
+            KeccakParameter.CSHAKE_256 -> {
+                if(functionName.isEmpty() && customization.isEmpty())
+                    KeccakParameter.SHAKE_128.SUFFIX
+                else
+                    parameters.SUFFIX
+            }
+            else -> parameters.SUFFIX
+        }
         //Absorb the rest of the bytes.
-        if(index < 0) absorb(KeccakMath.supplyPadding(absorbOffset, parameters.BITRATE, parameters.SUFFIX))
+        if(index < 0) absorb(KeccakMath.supplyPadding(absorbOffset, parameters.BITRATE, useSuffix))
         //Permute the internal state if more bytes are needed.
         else state = KeccakMath.permute(state)
 

@@ -11,4 +11,4 @@ pluginManagement {
     }
 }
 rootProject.name = "KeccakKotlin"
-
+include("java-example")

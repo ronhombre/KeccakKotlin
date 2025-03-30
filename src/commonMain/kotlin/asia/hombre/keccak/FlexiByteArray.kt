@@ -1,9 +1,24 @@
+/*
+ * Copyright 2025 Ron Lauren Hombre
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *        and included as LICENSE.txt in this Project.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package asia.hombre.keccak
 
 import kotlin.experimental.or
-import kotlin.js.ExperimentalJsExport
-import kotlin.js.JsExport
-import kotlin.js.JsName
 import kotlin.math.max
 import kotlin.math.min
 
@@ -14,8 +29,7 @@ import kotlin.math.min
  *
  * @author Ron Lauren Hombre
  */
-@OptIn(ExperimentalJsExport::class)
-@JsExport
+@Deprecated("Low level bit manipulation is generally inefficient in Kotlin.", ReplaceWith("ByteArray"), DeprecationLevel.WARNING)
 class FlexiByteArray {
     private var byteArray: ByteArray
 
@@ -28,7 +42,6 @@ class FlexiByteArray {
     /**
      * Create a FlexiByteArray with a specific size and initialize with a specific value.
      */
-    @JsName("init")
     constructor(size: Int, init: (Int) -> Byte) {
         byteArray = ByteArray(size, init)
     }
@@ -36,7 +49,6 @@ class FlexiByteArray {
     /**
      * Wrap a ByteArray and set the bit index of the last byte.
      */
-    @JsName("wrap")
     constructor(byteArray: ByteArray, bitIndex: Int = 7) {
         this.byteArray = byteArray.copyOf()
         this.bitIndex = bitIndex

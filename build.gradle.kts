@@ -10,8 +10,8 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "1.1.0"
-description = "SHA-3 Hash Functions in Kotlin"
+version = "2.0.0"
+description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
 
@@ -175,31 +175,6 @@ tasks.register("publishAllToMavenCentral") {
         val artifact = publication.value as MavenPublication
 
         dependsOn("publish" + parseArtifactId(artifact.artifactId) + "ToMavenCentral")
-    }
-}
-
-val npmDir = "./npm"
-
-tasks.register("packageNPM") {
-    mkdir(npmDir)
-    val packageSourcePath = projectDir.toPath().resolve("npm.json")
-    val packagePath = projectDir.toPath().resolve("npm").resolve("package.json")
-
-    var packageFile = String(Files.readAllBytes(packageSourcePath))
-    packageFile = packageFile.replace("<VERSION>", version.toString()).replace("<DESCRIPTION>", project.description.toString())
-    Files.write(packagePath, packageFile.toByteArray())
-}
-val npmKotlinDir = "$npmDir/kotlin"
-
-tasks.register<Copy>("bundleNPM") {
-    dependsOn("jsBrowserProductionWebpack", "packageNPM")
-
-    from(project.layout.buildDirectory.get().asFile.resolve("js").resolve("packages").resolve(project.name).resolve("kotlin"))
-    into(npmKotlinDir)
-
-    doFirst {
-        delete(npmKotlinDir)
-        mkdir(npmKotlinDir)
     }
 }
 

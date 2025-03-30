@@ -1,4 +1,4 @@
-# KeccakKotlin
+# KeccakKotlin (2.0.0)
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -19,21 +19,48 @@ This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend 
 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
-## Capabilities
-* SHA3-224
-* SHA3-256
-* SHA3-384
-* SHA3-512
+## 2.0.0 Update!
+> [!NOTE]
+> This major update brings in a Standard API to use the Keccak Hash Functions as well as a new HashInputStream and
+> HashOutputStream classes. Furthermore, SHA-3 Derived Hash Functions have been implemented as well!
+
+## Capabilities (NIST FIPS 202)
+* SHA3-224 (Byte Stream-able)
+* SHA3-256 (Byte Stream-able)
+* SHA3-384 (Byte Stream-able)
+* SHA3-512 (Byte Stream-able)
 * RawSHAKE128 (Extendable, Byte Stream-able)
 * RawSHAKE256 (Extendable, Byte Stream-able)
 * SHAKE128 (Extendable, Byte Stream-able)
 * SHAKE256 (Extendable, Byte Stream-able)
 
+## Extended Capabilities / SHA-3 Derived Functions (NIST SP 800-185)
+* cSHAKE128 (Extendable, Byte Stream-able)
+* cSHAKE256 (Extendable, Byte Stream-able)
+* KMAC128 (Byte Stream-able)
+* KMAC256 (Byte Stream-able)
+* KMACXOF128 (Extendable, Byte Stream-able)
+* KMACXOF256 (Extendable, Byte Stream-able)
+
+## To Be Supported
+> [!NOTE]
+> These hash functions will be gradually implemented.
+
+* TupleHash128 (Byte Stream-able)
+* TupleHash256 (Byte Stream-able)
+* TupleHashXOF128 (Extendable, Byte Stream-able)
+* TupleHashXOF256 (Extendable, Byte Stream-able)
+* ParallelHash128 (Byte Stream-able)
+* ParallelHash256 (Byte Stream-able)
+* ParallelHashXOF128 (Extendable, Byte Stream-able)
+* ParallelHashXOF256 (Extendable, Byte Stream-able)
+
+ParallelHash Functions might need to add coroutine as a dependency.
+
 ## Tested Platforms
 * JVM (Kotlin, Java)
-* JS (Node, Bun)
 
-## Supported Platforms
+## Supported Targets
 
 | Target                    | Arm32              | Arm64              | X64                |
 |---------------------------|--------------------|--------------------|--------------------|
@@ -47,58 +74,44 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
 
-**These targets are currently available, but I have no ability to compile them **yet**. Once I have more free time, I will setup a publishing server to compile to all targets.
+**These targets are currently available, but I have no ability to compile them **yet**. Once I have more free time, I will set up a publishing server to compile to all targets.
 
 ## Installation
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:1.1.0")
+    implementation("asia.hombre:keccak:2.0.0")
 }
-```
-NPM
-```text
-npm install keccakkotlin@1.1.0
 ```
 
 ## Usage
 ```kotlin
-import asia.hombre.keccak.KeccakHash
-
-val sha3_224 = KeccakHash.generate(KeccakParameter.SHA3_224, "".encodeToByteArray())
+val sha3_224 = SHA3_224().digest()
 println(sha3_224.toHexString(HexFormat.UpperCase))
-val sha3_256 = KeccakHash.generate(KeccakParameter.SHA3_256, "".encodeToByteArray())
+val sha3_256 = SHA3_256().digest()
 println(sha3_256.toHexString(HexFormat.UpperCase))
-val sha3_384 = KeccakHash.generate(KeccakParameter.SHA3_384, "".encodeToByteArray())
+val sha3_384 = SHA3_384().digest()
 println(sha3_384.toHexString(HexFormat.UpperCase))
-val sha3_512 = KeccakHash.generate(KeccakParameter.SHA3_512, "".encodeToByteArray())
+val sha3_512 = SHA3_512().digest()
 println(sha3_512.toHexString(HexFormat.UpperCase))
 
 //Extendable-Output Functions
 //A third parameter called 'lengthInBytes' is used to modify the output length.
-val rawshake_128 = KeccakHash.generate(KeccakParameter.RAWSHAKE_128, "".encodeToByteArray())
+val rawshake_128 = RawSHAKE128().digest()
 println(rawshake_128.toHexString(HexFormat.UpperCase))
-val rawshake_256 = KeccakHash.generate(KeccakParameter.RAWSHAKE_256, "".encodeToByteArray())
+val rawshake_256 = RawSHAKE256().digest()
 println(rawshake_256.toHexString(HexFormat.UpperCase))
-val shake_128 = KeccakHash.generate(KeccakParameter.SHAKE_128, "".encodeToByteArray())
+val shake_128 = SHAKE128().digest()
 println(shake_128.toHexString(HexFormat.UpperCase))
-val shake_256 = KeccakHash.generate(KeccakParameter.SHAKE_256, "".encodeToByteArray())
+val shake_256 = SHAKE256().digest()
 println(shake_256.toHexString(HexFormat.UpperCase))
 
-//Byte Streaming
-val input = "".encodeToByteArray()
-val rawshake_128_stream = KeccakByteStream(KeccakParameter.RAWSHAKE_128)
-rawshake_128_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
-rawshake_128_stream.next() //Automatically generates more bytes
-val rawshake_256_stream = KeccakByteStream(KeccakParameter.RAWSHAKE_256)
-rawshake_256_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
-rawshake_256_stream.next() //Automatically generates more bytes
-val shake_128_stream = KeccakByteStream(KeccakParameter.SHAKE_128)
-shake_128_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
-shake_128_stream.next() //Automatically generates more bytes
-val shake_256_stream = KeccakByteStream(KeccakParameter.SHAKE_256)
-shake_256_stream.absorb(input) //Can be used many times, and the bytes will be concatenated.
-shake_256_stream.next() //Automatically generates more bytes
+//Input Streaming
+val shake128_in = SHAKE128.newInputStream()
+shake128_in.write("Hello!".encodeToByteArray())
+//Output Streaming
+val shake128_out = shake128_in.close()
+println(shake128_out.nextBytes(1024).toHexString(HexFormat.UpperCase))
 ```
 
 ## Documentation
@@ -114,7 +127,7 @@ shake_256_stream.next() //Automatically generates more bytes
 ### License
 
 ```
-Copyright 2024 Ron Lauren Hombre
+Copyright 2025 Ron Lauren Hombre
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
