@@ -114,6 +114,8 @@ val shake128_out = shake128_in.close()
 println(shake128_out.nextBytes(1024).toHexString(HexFormat.UpperCase))
 ```
 
+View the java example [here](https://github.com/ronhombre/KeccakKotlin/blob/master/java-example/src/main/java/asia/hombre/examples/keccak/Main.java)!
+
 ## Documentation
 * [keccak.hombre.asia](https://keccak.hombre.asia)
 
