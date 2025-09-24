@@ -280,86 +280,89 @@ internal object KeccakMath {
         bytes[bytes.lastIndex] = bytes[bytes.lastIndex] or (-128).toByte()
     }
 
+    /**
+     * I believe this is already quite close to the most optimal version but additional performance might be found in
+     * re-ordering and simplifying the common operations. Please investigate if you have time.
+     */
     @JvmSynthetic
     fun directPermute(state: Array<LongArray>) {
+        val c = LongArray(5)
+        val d = LongArray(5)
+
+        val preliminaryState = Array<LongArray>(5) { LongArray(5) }
+
         for(i in 0..<24) {
             //Theta (Parity Calculation) + Rho (Rotate bits) + Pi (Rearrange lanes)
-            val c = longArrayOf(
-                state[0][0] xor state[0][1] xor state[0][2] xor state[0][3] xor state[0][4],
-                state[1][0] xor state[1][1] xor state[1][2] xor state[1][3] xor state[1][4],
-                state[2][0] xor state[2][1] xor state[2][2] xor state[2][3] xor state[2][4],
-                state[3][0] xor state[3][1] xor state[3][2] xor state[3][3] xor state[3][4],
-                state[4][0] xor state[4][1] xor state[4][2] xor state[4][3] xor state[4][4]
-            )
+            c[0] = state[0][0] xor state[0][1] xor state[0][2] xor state[0][3] xor state[0][4]
+            c[1] = state[1][0] xor state[1][1] xor state[1][2] xor state[1][3] xor state[1][4]
+            c[2] = state[2][0] xor state[2][1] xor state[2][2] xor state[2][3] xor state[2][4]
+            c[3] = state[3][0] xor state[3][1] xor state[3][2] xor state[3][3] xor state[3][4]
+            c[4] = state[4][0] xor state[4][1] xor state[4][2] xor state[4][3] xor state[4][4]
 
-            val d = longArrayOf(
-                c[4] xor c[1].rotateLeft(1),
-                c[0] xor c[2].rotateLeft(1),
-                c[1] xor c[3].rotateLeft(1),
-                c[2] xor c[4].rotateLeft(1),
-                c[3] xor c[0].rotateLeft(1)
-            )
+            d[0] = c[4] xor c[1].rotateLeft(1)
+            d[1] = c[0] xor c[2].rotateLeft(1)
+            d[2] = c[1] xor c[3].rotateLeft(1)
+            d[3] = c[2] xor c[4].rotateLeft(1)
+            d[4] = c[3] xor c[0].rotateLeft(1)
 
-            val newState = arrayOf(
-                longArrayOf(
-                    (state[0][0] xor d[0]),
-                    (state[3][0] xor d[3]).rotateLeft(28),
-                    (state[1][0] xor d[1]).rotateLeft(1),
-                    (state[4][0] xor d[4]).rotateLeft(27),
-                    (state[2][0] xor d[2]).rotateLeft(62)),
-                longArrayOf(
-                    (state[1][1] xor d[1]).rotateLeft(44),
-                    (state[4][1] xor d[4]).rotateLeft(20),
-                    (state[2][1] xor d[2]).rotateLeft(6),
-                    (state[0][1] xor d[0]).rotateLeft(36),
-                    (state[3][1] xor d[3]).rotateLeft(55)),
-                longArrayOf(
-                    (state[2][2] xor d[2]).rotateLeft(43),
-                    (state[0][2] xor d[0]).rotateLeft(3),
-                    (state[3][2] xor d[3]).rotateLeft(25),
-                    (state[1][2] xor d[1]).rotateLeft(10),
-                    (state[4][2] xor d[4]).rotateLeft(39)),
-                longArrayOf(
-                    (state[3][3] xor d[3]).rotateLeft(21),
-                    (state[1][3] xor d[1]).rotateLeft(45),
-                    (state[4][3] xor d[4]).rotateLeft(8),
-                    (state[2][3] xor d[2]).rotateLeft(15),
-                    (state[0][3] xor d[0]).rotateLeft(41)),
-                longArrayOf(
-                    (state[4][4] xor d[4]).rotateLeft(14),
-                    (state[2][4] xor d[2]).rotateLeft(61),
-                    (state[0][4] xor d[0]).rotateLeft(18),
-                    (state[3][4] xor d[3]).rotateLeft(56),
-                    (state[1][4] xor d[1]).rotateLeft(2))
-            )
+            preliminaryState[0][0] = (state[0][0] xor d[0])
+            preliminaryState[0][1] = (state[3][0] xor d[3]).rotateLeft(28)
+            preliminaryState[0][2] = (state[1][0] xor d[1]).rotateLeft(1)
+            preliminaryState[0][3] = (state[4][0] xor d[4]).rotateLeft(27)
+            preliminaryState[0][4] = (state[2][0] xor d[2]).rotateLeft(62)
+            preliminaryState[1][0] = (state[1][1] xor d[1]).rotateLeft(44)
+            preliminaryState[1][1] = (state[4][1] xor d[4]).rotateLeft(20)
+            preliminaryState[1][2] = (state[2][1] xor d[2]).rotateLeft(6)
+            preliminaryState[1][3] = (state[0][1] xor d[0]).rotateLeft(36)
+            preliminaryState[1][4] = (state[3][1] xor d[3]).rotateLeft(55)
+            preliminaryState[2][0] = (state[2][2] xor d[2]).rotateLeft(43)
+            preliminaryState[2][1] = (state[0][2] xor d[0]).rotateLeft(3)
+            preliminaryState[2][2] = (state[3][2] xor d[3]).rotateLeft(25)
+            preliminaryState[2][3] = (state[1][2] xor d[1]).rotateLeft(10)
+            preliminaryState[2][4] = (state[4][2] xor d[4]).rotateLeft(39)
+            preliminaryState[3][0] = (state[3][3] xor d[3]).rotateLeft(21)
+            preliminaryState[3][1] = (state[1][3] xor d[1]).rotateLeft(45)
+            preliminaryState[3][2] = (state[4][3] xor d[4]).rotateLeft(8)
+            preliminaryState[3][3] = (state[2][3] xor d[2]).rotateLeft(15)
+            preliminaryState[3][4] = (state[0][3] xor d[0]).rotateLeft(41)
+            preliminaryState[4][0] = (state[4][4] xor d[4]).rotateLeft(14)
+            preliminaryState[4][1] = (state[2][4] xor d[2]).rotateLeft(61)
+            preliminaryState[4][2] = (state[0][4] xor d[0]).rotateLeft(18)
+            preliminaryState[4][3] = (state[3][4] xor d[3]).rotateLeft(56)
+            preliminaryState[4][4] = (state[1][4] xor d[1]).rotateLeft(2)
 
             //Chi (XOR lanes) + Iota (Modify the first lane with a predefined value unique for each round)
-            state[0][0] = newState[0][0] xor (newState[1][0].inv() and newState[2][0]) xor KeccakConstants.ROUND[i]
-            state[0][1] = newState[0][1] xor (newState[1][1].inv() and newState[2][1])
-            state[0][2] = newState[0][2] xor (newState[1][2].inv() and newState[2][2])
-            state[0][3] = newState[0][3] xor (newState[1][3].inv() and newState[2][3])
-            state[0][4] = newState[0][4] xor (newState[1][4].inv() and newState[2][4])
-            state[1][0] = newState[1][0] xor (newState[2][0].inv() and newState[3][0])
-            state[1][1] = newState[1][1] xor (newState[2][1].inv() and newState[3][1])
-            state[1][2] = newState[1][2] xor (newState[2][2].inv() and newState[3][2])
-            state[1][3] = newState[1][3] xor (newState[2][3].inv() and newState[3][3])
-            state[1][4] = newState[1][4] xor (newState[2][4].inv() and newState[3][4])
-            state[2][0] = newState[2][0] xor (newState[3][0].inv() and newState[4][0])
-            state[2][1] = newState[2][1] xor (newState[3][1].inv() and newState[4][1])
-            state[2][2] = newState[2][2] xor (newState[3][2].inv() and newState[4][2])
-            state[2][3] = newState[2][3] xor (newState[3][3].inv() and newState[4][3])
-            state[2][4] = newState[2][4] xor (newState[3][4].inv() and newState[4][4])
-            state[3][0] = newState[3][0] xor (newState[4][0].inv() and newState[0][0])
-            state[3][1] = newState[3][1] xor (newState[4][1].inv() and newState[0][1])
-            state[3][2] = newState[3][2] xor (newState[4][2].inv() and newState[0][2])
-            state[3][3] = newState[3][3] xor (newState[4][3].inv() and newState[0][3])
-            state[3][4] = newState[3][4] xor (newState[4][4].inv() and newState[0][4])
-            state[4][0] = newState[4][0] xor (newState[0][0].inv() and newState[1][0])
-            state[4][1] = newState[4][1] xor (newState[0][1].inv() and newState[1][1])
-            state[4][2] = newState[4][2] xor (newState[0][2].inv() and newState[1][2])
-            state[4][3] = newState[4][3] xor (newState[0][3].inv() and newState[1][3])
-            state[4][4] = newState[4][4] xor (newState[0][4].inv() and newState[1][4])
+            state[0][0] = preliminaryState[0][0] xor (preliminaryState[1][0].inv() and preliminaryState[2][0]) xor KeccakConstants.ROUND[i]
+            state[0][1] = preliminaryState[0][1] xor (preliminaryState[1][1].inv() and preliminaryState[2][1])
+            state[0][2] = preliminaryState[0][2] xor (preliminaryState[1][2].inv() and preliminaryState[2][2])
+            state[0][3] = preliminaryState[0][3] xor (preliminaryState[1][3].inv() and preliminaryState[2][3])
+            state[0][4] = preliminaryState[0][4] xor (preliminaryState[1][4].inv() and preliminaryState[2][4])
+            state[1][0] = preliminaryState[1][0] xor (preliminaryState[2][0].inv() and preliminaryState[3][0])
+            state[1][1] = preliminaryState[1][1] xor (preliminaryState[2][1].inv() and preliminaryState[3][1])
+            state[1][2] = preliminaryState[1][2] xor (preliminaryState[2][2].inv() and preliminaryState[3][2])
+            state[1][3] = preliminaryState[1][3] xor (preliminaryState[2][3].inv() and preliminaryState[3][3])
+            state[1][4] = preliminaryState[1][4] xor (preliminaryState[2][4].inv() and preliminaryState[3][4])
+            state[2][0] = preliminaryState[2][0] xor (preliminaryState[3][0].inv() and preliminaryState[4][0])
+            state[2][1] = preliminaryState[2][1] xor (preliminaryState[3][1].inv() and preliminaryState[4][1])
+            state[2][2] = preliminaryState[2][2] xor (preliminaryState[3][2].inv() and preliminaryState[4][2])
+            state[2][3] = preliminaryState[2][3] xor (preliminaryState[3][3].inv() and preliminaryState[4][3])
+            state[2][4] = preliminaryState[2][4] xor (preliminaryState[3][4].inv() and preliminaryState[4][4])
+            state[3][0] = preliminaryState[3][0] xor (preliminaryState[4][0].inv() and preliminaryState[0][0])
+            state[3][1] = preliminaryState[3][1] xor (preliminaryState[4][1].inv() and preliminaryState[0][1])
+            state[3][2] = preliminaryState[3][2] xor (preliminaryState[4][2].inv() and preliminaryState[0][2])
+            state[3][3] = preliminaryState[3][3] xor (preliminaryState[4][3].inv() and preliminaryState[0][3])
+            state[3][4] = preliminaryState[3][4] xor (preliminaryState[4][4].inv() and preliminaryState[0][4])
+            state[4][0] = preliminaryState[4][0] xor (preliminaryState[0][0].inv() and preliminaryState[1][0])
+            state[4][1] = preliminaryState[4][1] xor (preliminaryState[0][1].inv() and preliminaryState[1][1])
+            state[4][2] = preliminaryState[4][2] xor (preliminaryState[0][2].inv() and preliminaryState[1][2])
+            state[4][3] = preliminaryState[4][3] xor (preliminaryState[0][3].inv() and preliminaryState[1][3])
+            state[4][4] = preliminaryState[4][4] xor (preliminaryState[0][4].inv() and preliminaryState[1][4])
         }
+
+        //Clear arrays after use
+        c.fill(0)
+        d.fill(0)
+        preliminaryState.forEach { it.fill(0) }
     }
 
     @JvmSynthetic

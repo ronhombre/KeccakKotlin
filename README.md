@@ -1,4 +1,4 @@
-# KeccakKotlin (2.0.0)
+# KeccakKotlin (2.0.1)
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -19,9 +19,15 @@ This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend 
 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
-## 2.0.0 Update!
+## 2.0.1 Update!
 > [!NOTE]
-> This major update brings in a Standard API to use the Keccak Hash Functions as well as a new HashInputStream and
+> Uses 1/5th of memory allocations compared to version 2.0.0 when used in KyberKotlin. It brought down 275.57GB to
+> 53.88GB which is about ~20% of the previous version! It also minimally made for some speed improvements. (Tested on
+> JVMBenchmark in KyberKotlin).
+> No need to change anything in your codebase. This is purely an internal optimization.
+
+> [!NOTE]
+> OLD NOTE: This major update brings in a Standard API to use the Keccak Hash Functions as well as a new HashInputStream and
 > HashOutputStream classes. Furthermore, SHA-3 Derived Hash Functions have been implemented as well!
 
 ## Capabilities (NIST FIPS 202)
@@ -80,7 +86,7 @@ ParallelHash Functions might need to add coroutine as a dependency.
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:2.0.0")
+    implementation("asia.hombre:keccak:2.0.1")
 }
 ```
 
