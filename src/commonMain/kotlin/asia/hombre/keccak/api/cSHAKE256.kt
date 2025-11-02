@@ -18,7 +18,7 @@
 
 package asia.hombre.keccak.api
 
-import asia.hombre.keccak.FlexiByte
+import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
@@ -70,7 +70,7 @@ class cSHAKE256(
             .also { super.update(PADDING) }
 
     override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, SUFFIX, chunks, parameter.maxLength / 8)
+        HashOutputStream(parameter, SUFFIX, chunks, outputLength)
             .also { super.update(PADDING) }
 
     companion object {
@@ -87,7 +87,7 @@ class cSHAKE256(
          */
         fun newInputStream(
             functionName: ByteArray = ByteArray(0),
-            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER, PARAMETER.maxLength / 8) {
+            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER) {
             override val SUFFIX: FlexiByte
                 get() =
                     if(functionName.size + customization.size != 0)

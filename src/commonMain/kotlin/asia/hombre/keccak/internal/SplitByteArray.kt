@@ -27,7 +27,7 @@ package asia.hombre.keccak.internal
  */
 internal class SplitByteArray(var a: ByteArray, var b: ByteArray) {
     val size = a.size + b.size
-    val lastIndex = a.size + b.lastIndex
+    //val lastIndex = a.size + b.lastIndex
     operator fun get(i: Int): Byte = if(i < a.size) a[i] else b[i - a.size]
     operator fun set(i: Int, value: Byte) = if(i < a.size) a[i] = value else b[i - a.size] = value
 }

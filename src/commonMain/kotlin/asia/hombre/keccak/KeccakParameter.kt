@@ -18,6 +18,7 @@
 
 package asia.hombre.keccak
 
+import asia.hombre.keccak.internal.FlexiByte
 import kotlin.jvm.JvmField
 
 /**
@@ -28,7 +29,7 @@ import kotlin.jvm.JvmField
  *
  * @author Ron Lauren Hombre
  */
-enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: Int, val CAPACITY: Int, val SUFFIX: FlexiByte) {
+enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: Int, val CAPACITY: Int, internal val SUFFIX: FlexiByte) {
     /**
      * Keccak[448](M||01, 224)
      */

@@ -1,6 +1,5 @@
-import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
 import java.io.ByteArrayOutputStream
-import java.nio.file.Files
 
 plugins {
     kotlin("multiplatform")
@@ -10,7 +9,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "2.0.1"
+version = "2.1.0"
 description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
@@ -178,30 +177,23 @@ tasks.register("publishAllToMavenCentral") {
     }
 }
 
-tasks.dokkaHtml.configure {
-    dokkaSourceSets {
-        named("commonMain") {
-            // Adjust visibility to include internal and private members
-            perPackageOption {
-                matchingRegex.set(".*") // Match all packages
-                includeNonPublic.set(false)
+dokka {
+    pluginsConfiguration.html {
+        footerMessage = "Copyright (c) 2025 Ron Lauren Hombre"
+    }
+
+    dokkaPublications.html {
+        dokkaSourceSets {
+            named("commonMain") {
+                perPackageOption {
+                    matchingRegex.set(".*")
+                }
+                reportUndocumented.set(true)
+                documentedVisibilities(
+                    VisibilityModifier.Public,
+                    VisibilityModifier.Protected,
+                )
             }
-            // Optionally, report undocumented members
-            reportUndocumented.set(true)
         }
     }
-}
-
-tasks.withType<DokkaTask>().configureEach {
-    val dokkaBaseConfiguration = """
-    {
-      "footerMessage": "(C) 2025 Ron Lauren Hombre"
-    }
-    """
-    pluginsMapConfiguration.set(
-        mapOf(
-            // fully qualified plugin name to json configuration
-            "org.jetbrains.dokka.base.DokkaBase" to dokkaBaseConfiguration
-        )
-    )
 }

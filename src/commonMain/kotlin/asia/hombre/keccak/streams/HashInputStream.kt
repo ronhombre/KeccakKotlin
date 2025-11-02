@@ -18,7 +18,7 @@
 
 package asia.hombre.keccak.streams
 
-import asia.hombre.keccak.FlexiByte
+import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.internal.SplitByteArray
@@ -38,7 +38,7 @@ open class HashInputStream internal constructor(
      */
     @get:JvmName("getParameter")
     val PARAMETER: KeccakParameter,
-    private val maxOutputLength: Int
+    private val maxOutputLength: Int = PARAMETER.maxLength / 8
 ) {
     private val incompleteState = Array(5) { LongArray(5) }
     private val buffer = SplitByteArray(ByteArray(PARAMETER.BYTERATE), ByteArray(200 - PARAMETER.BYTERATE))
@@ -48,7 +48,7 @@ open class HashInputStream internal constructor(
     /**
      * The suffix for this instance used as input for the algorithm.
      */
-    protected open val SUFFIX: FlexiByte
+    internal open val SUFFIX: FlexiByte
         get() = PARAMETER.SUFFIX
 
     private var isClosed = false
@@ -65,7 +65,7 @@ open class HashInputStream internal constructor(
 
         KeccakMath.directPermute(incompleteState)
 
-        buffer.a.fill(0)
+        inputBuffer.fill(0)
         inputPos = 0
     }
 
@@ -74,7 +74,7 @@ open class HashInputStream internal constructor(
         if(isClosed) throw IllegalStateException("Already closed.")
 
         var inputIndex = offset
-        var endIndex = offset + length
+        val endIndex = offset + length
 
         while(inputIndex < endIndex) {
             val bytesToDigest = min(endIndex - inputIndex, inputBuffer.size - inputPos)
@@ -197,6 +197,8 @@ open class HashInputStream internal constructor(
         inputPos = inputBuffer.size
 
         tryPermute()
+
+        buffer.b.fill(0)
 
         return HashOutputStream(PARAMETER, incompleteState, maxOutputLength)
     }

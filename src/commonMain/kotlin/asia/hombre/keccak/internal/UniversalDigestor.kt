@@ -87,36 +87,6 @@ internal class UniversalDigestor(private val initialCapacity: Int) {
     }
 
     /**
-     * Returns a contiguous array of bytes of the buffer.
-     *
-     * This is inefficient so this is no longer used.
-     */
-    fun extractAndReset(): ByteArray {
-        try {
-            val arraySize: Long = (bufferStorage.size.toLong() * initialCapacity.toLong()) + bufferPos.toLong()
-            val extractArray = ByteArray(arraySize.toInt())
-
-            bufferStorage.forEachIndexed { index, storedBuffer ->
-                storedBuffer.copyInto(extractArray, index * initialCapacity, 0, storedBuffer.size)
-                storedBuffer.fill(0)
-            }
-
-            buffer.copyInto(extractArray, bufferStorage.size * initialCapacity, 0, bufferPos)
-            bufferStorage.clear()
-            buffer.fill(0)
-            bufferPos = 0
-
-            return extractArray
-        } catch (e: Throwable) {
-            bufferStorage.forEach { it.fill(0) }
-            buffer.fill(0)
-            bufferPos = 0
-
-            throw e
-        }
-    }
-
-    /**
      * Returns the chunks of the buffer. (Almost zero copy operation. Only references are copied here)
      */
     fun extractChunksAndReset(): Pair<Array<ByteArray>, Int> {

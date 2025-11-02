@@ -66,7 +66,7 @@ class KMACXOF256(
             .also { super.update(PADDING) }
 
     override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, parameter.maxLength / 8)
+        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, outputLength)
             .also { super.update(PADDING) }
 
     companion object {
@@ -84,7 +84,7 @@ class KMACXOF256(
          */
         fun newInputStream(
             key: ByteArray,
-            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER, PARAMETER.maxLength / 8) {
+            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER) {
             init {
                 super.write(prePadding(key, customization))
             }

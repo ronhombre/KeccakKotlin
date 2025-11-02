@@ -27,6 +27,7 @@ import asia.hombre.keccak.streams.HashOutputStream
  * @author Ron Lauren Hombre
  * @since 2.0.0
  */
+@Suppress("unused")
 abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int): KeccakInstance {
     private val digestor: UniversalDigestor = UniversalDigestor(initialCapacity)
 

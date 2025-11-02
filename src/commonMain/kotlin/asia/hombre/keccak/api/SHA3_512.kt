@@ -54,6 +54,6 @@ class SHA3_512(
          * @return [HashInputStream]
          * @since 2.0.0
          */
-        fun newInputStream(): HashInputStream = object : HashInputStream(PARAMETER, PARAMETER.maxLength / 8) {}
+        fun newInputStream(): HashInputStream = object : HashInputStream(PARAMETER) {}
     }
 }

@@ -42,7 +42,7 @@ class SHAKE256(
         KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, parameter.SUFFIX)
 
     override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, parameter.maxLength / 8)
+        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, outputLength)
 
     companion object {
         @get:JvmName("getParameter")
@@ -54,6 +54,6 @@ class SHAKE256(
          * @return [HashInputStream]
          * @since 2.0.0
          */
-        fun newInputStream(): HashInputStream = object : HashInputStream(PARAMETER, PARAMETER.maxLength / 8) {}
+        fun newInputStream(): HashInputStream = object : HashInputStream(PARAMETER) {}
     }
 }

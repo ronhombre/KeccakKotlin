@@ -18,7 +18,7 @@
 
 package asia.hombre.keccak.streams
 
-import asia.hombre.keccak.FlexiByte
+import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.KeccakMath
@@ -32,6 +32,7 @@ import kotlin.math.min
  * @author Ron Lauren Hombre
  * @since 2.0.0
  */
+@Suppress("unused")
 class HashOutputStream {
     /**
      * The [KeccakParameter] used to generate the hash stream.
@@ -62,7 +63,7 @@ class HashOutputStream {
      *
      * DO NOT MAKE THIS PUBLIC.
      */
-    internal constructor(parameter: KeccakParameter, suffix: FlexiByte, chunks: Pair<Array<ByteArray>, Int>, maxOutputLength: Int) {
+    internal constructor(parameter: KeccakParameter, suffix: FlexiByte, chunks: Pair<Array<ByteArray>, Int>, maxOutputLength: Int = parameter.maxLength / 8) {
         if(chunks.first.isEmpty()) throw IllegalArgumentException("Must have at least one chunk.")
 
         PARAMETER = parameter
@@ -80,6 +81,8 @@ class HashOutputStream {
 
         KeccakHash.generateDirect(PARAMETER, chunks, suffix, stateBuffer, state)
 
+        chunks.first.forEach { it.fill(0) }
+
         //Drops reference to a ByteArray which is a part of `chunks` to allow the GC to clean `chunks` up.
         stateBuffer.a = ByteArray(PARAMETER.BYTERATE)
         KeccakMath.directMatrixToBytes(state, stateBuffer)
@@ -90,7 +93,7 @@ class HashOutputStream {
      *
      * DO NOT MAKE THIS PUBLIC.
      */
-    internal constructor(parameter: KeccakParameter, completedState: Array<LongArray>, maxOutputLength: Int) {
+    internal constructor(parameter: KeccakParameter, completedState: Array<LongArray>, maxOutputLength: Int = parameter.maxLength / 8) {
         PARAMETER = parameter
 
         //Commented out since it's redundant given this is an internal part.
