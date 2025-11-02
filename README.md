@@ -22,7 +22,7 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 ## 2.1.0 Update!
 > [!NOTE]
 > Removed deprecated classes and functions like FlexiByteArray, FlexiByte, and any functions related to them.
-> 
+
 > [!NOTE]
 > OLD NOTE: This major update brings in a Standard API to use the Keccak Hash Functions as well as a new HashInputStream and
 > HashOutputStream classes. Furthermore, SHA-3 Derived Hash Functions have been implemented as well!
