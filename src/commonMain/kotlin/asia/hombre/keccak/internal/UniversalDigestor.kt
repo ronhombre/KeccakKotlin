@@ -53,6 +53,11 @@ internal class UniversalDigestor(private val initialCapacity: Int) {
         }
     }
 
+    fun skipToNextChunk() {
+        bufferPos = buffer.size
+        allocateMoreIfRequired()
+    }
+
     fun digestSingle(byte: Byte) {
         willItFit(1L)
 

@@ -40,6 +40,11 @@ object KeccakConstants {
         -9223372034707259263, -9223372036854742912, 2147483649, -9223372034707259384
     )
 
-    val KMAC_ENCODED = KeccakMath.encodeString("KMAC")
+    val KMAC_BYTES = byteArrayOf(
+        'K'.code.toByte(),
+        'M'.code.toByte(),
+        'A'.code.toByte(),
+        'C'.code.toByte()
+    )
     val KMACXOF_RIGHT_ENCODED = KeccakMath.rightEncode(0L)
 }

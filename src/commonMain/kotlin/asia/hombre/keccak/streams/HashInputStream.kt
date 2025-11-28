@@ -54,6 +54,11 @@ open class HashInputStream internal constructor(
     private var isClosed = false
     private var inputPos = 0
 
+    internal fun forcePermute() {
+        inputPos = inputBuffer.size
+        tryPermute()
+    }
+
     /**
      * Permutes if there are no more usable bytes.
      */

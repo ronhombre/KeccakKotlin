@@ -22,7 +22,6 @@ import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
-import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.streams.HashInputStream
 import asia.hombre.keccak.streams.HashOutputStream
 import kotlin.jvm.JvmName
@@ -33,6 +32,7 @@ import kotlin.jvm.JvmName
  * @author Ron Lauren Hombre
  * @since 2.0.0
  */
+@Suppress("ClassName")
 class cSHAKE128(
     /**
      * The number of bytes to output on `digest()` or `stream()`.
@@ -48,30 +48,24 @@ class cSHAKE128(
     val customization: ByteArray = ByteArray(0)): AbstractKeccakFunction(PARAMETER.BYTERATE) {
     override val parameter: KeccakParameter = PARAMETER
 
-    private val SUFFIX: FlexiByte
-    private val PADDING = KeccakMath.padBytes(
-        byteArrayOf(
-            *KeccakMath.encodeStringBytes(functionName),
-            *KeccakMath.encodeStringBytes(customization)
-        ),
-        parameter.BYTERATE
-    )
+    private val suffix: FlexiByte
 
     init {
-        if(functionName.size + customization.size != 0)
-            super.update(PADDING).also { SUFFIX = parameter.SUFFIX }
-        else {
-            SUFFIX = KeccakParameter.SHAKE_128.SUFFIX
+        if(functionName.size + customization.size != 0) {
+            addCSHAKEPrePadding(functionName, customization)
+            suffix = parameter.SUFFIX
+        } else {
+            suffix = KeccakParameter.SHAKE_128.SUFFIX
         }
     }
 
     override fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray =
-        KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, SUFFIX)
-            .also { super.update(PADDING) }
+        KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, suffix)
+            .also { addCSHAKEPrePadding(functionName, customization) }
 
     override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, SUFFIX, chunks, outputLength)
-            .also { super.update(PADDING) }
+        HashOutputStream(parameter, suffix, chunks, outputLength)
+            .also { addCSHAKEPrePadding(functionName, customization) }
 
     companion object {
         @get:JvmName("getParameter")
@@ -96,14 +90,9 @@ class cSHAKE128(
                         KeccakParameter.SHAKE_128.SUFFIX
 
             init {
-                if(functionName.size + customization.size != 0)
-                    super.write(KeccakMath.padBytes(
-                        byteArrayOf(
-                            *KeccakMath.encodeStringBytes(functionName),
-                            *KeccakMath.encodeStringBytes(customization)
-                        ),
-                        PARAMETER.BYTERATE
-                    ))
+                if(functionName.size + customization.size != 0) {
+                    addCSHAKEPrePadding(functionName, customization)
+                }
             }
         }
     }

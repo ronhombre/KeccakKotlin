@@ -37,14 +37,14 @@ internal object KeccakMath {
     @JvmSynthetic
     fun longToBytes(long: Long): ByteArray {
         return byteArrayOf(
-            (long and 0xFF).toByte(),
-            ((long shr 8) and 0xFF).toByte(),
-            ((long shr 16) and 0xFF).toByte(),
-            ((long shr 24) and 0xFF).toByte(),
-            ((long shr 32) and 0xFF).toByte(),
-            ((long shr 40) and 0xFF).toByte(),
+            ((long shr 56) and 0xFF).toByte(),
             ((long shr 48) and 0xFF).toByte(),
-            ((long shr 56) and 0xFF).toByte()
+            ((long shr 40) and 0xFF).toByte(),
+            ((long shr 32) and 0xFF).toByte(),
+            ((long shr 24) and 0xFF).toByte(),
+            ((long shr 16) and 0xFF).toByte(),
+            ((long shr 8) and 0xFF).toByte(),
+            (long and 0xFF).toByte()
         )
     }
 
@@ -185,58 +185,36 @@ internal object KeccakMath {
      */
 
     @JvmSynthetic
-    fun computeForNGivenX(x: Long): Int = ((Long.SIZE_BITS - (x ushr 1).countLeadingZeroBits()) ushr 3) + 1
+    fun computeForNGivenX(x: Long): Byte = (((64 - (x ushr 1).countLeadingZeroBits()) ushr 3) + 1).toByte()
 
     @JvmSynthetic
-    fun encodeToBytes(number: Long, max: Int = 0): ByteArray =
+    fun encodeToBytes(number: Long, min: Int = 0): ByteArray =
         longToBytes(number)
-            .copyOfRange(0, max((Long.SIZE_BITS - number.countLeadingZeroBits() + 7) shr 3, max))
-            .reversedArray()
+            .copyOfRange(8 - max((Long.SIZE_BITS - number.countLeadingZeroBits() + 7) shr 3, min), 8)
 
     /**
      * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
      *
      * This validity condition is outlined in SP 800-185.
+     *
+     * Although in reality, reaching this value is unrealistic since we are limited to 2^64 with Long and before that
+     * with 2^32 with Int, which is the unit for the size of byte arrays.
      */
     @JvmSynthetic
     fun leftEncode(x: Long): ByteArray {
-        val n = computeForNGivenX(x).toUByte().toByte()
-
-        return byteArrayOf(n, *encodeToBytes(x, 1))
+        return byteArrayOf(computeForNGivenX(x), *encodeToBytes(x, 1))
     }
 
     /**
      * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
      *
      * This validity condition is outlined in SP 800-185.
+     *
+     * Although in reality, reaching this value is unrealistic since we are limited to 2^64 with Long and before that
+     * with 2^32 with Int, which is the unit for the size of byte arrays.
      */
     @JvmSynthetic
     fun rightEncode(x: Long): ByteArray {
-        val n = computeForNGivenX(x).toUByte().toByte()
-
-        return byteArrayOf(*encodeToBytes(x, 1), n)
-    }
-
-    /**
-     * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
-     *
-     * This validity condition is outlined in SP 800-185.
-     */
-    @JvmSynthetic
-    fun encodeString(string: String): ByteArray = encodeStringBytes(string.encodeToByteArray())
-
-    /**
-     * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
-     *
-     * This validity condition is outlined in SP 800-185.
-     */
-    @JvmSynthetic
-    fun encodeStringBytes(bytes: ByteArray): ByteArray = byteArrayOf(*leftEncode(bytes.size.toLong() * 8L), *bytes)
-
-    @JvmSynthetic
-    fun padBytes(bytes: ByteArray, multiple: Int): ByteArray {
-        val encoded = leftEncode(multiple.toLong())
-
-        return byteArrayOf(*encoded, *bytes, *ByteArray((multiple - ((encoded.size + bytes.size) % multiple))))
+        return byteArrayOf(*encodeToBytes(x, 1), computeForNGivenX(x))
     }
 }

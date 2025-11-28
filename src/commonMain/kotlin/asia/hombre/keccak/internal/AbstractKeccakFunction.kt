@@ -185,6 +185,8 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
         return computeAsHashStream(digestor.extractChunksAndReset())
     }
 
+    internal fun skipToNextChunk() = digestor.skipToNextChunk()
+
     protected abstract fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray
     protected abstract fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream
     protected open fun addLast(): ByteArray = ByteArray(0)

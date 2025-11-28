@@ -18,7 +18,6 @@
 
 package asia.hombre.keccak.api
 
-import asia.hombre.keccak.KeccakConstants
 import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
@@ -40,7 +39,7 @@ class KMAC256(
      * This should be longer than the required bit security strength. For this parameter, the key should at least be 32
      * bytes or 256 bits.
      */
-    key: ByteArray,
+    private val key: ByteArray,
     /**
      * The number of bytes to output on `digest()` or `stream()`.
      *
@@ -53,21 +52,19 @@ class KMAC256(
     val customization: ByteArray = ByteArray(0)): AbstractKeccakFunction(PARAMETER.BYTERATE) {
     override val parameter: KeccakParameter = PARAMETER
 
-    private val PADDING = prePadding(key, customization)
-
     init {
-        super.update(PADDING)
+        addKMACPrePadding(key, customization)
     }
 
     override fun addLast(): ByteArray = KeccakMath.rightEncode(outputLength * 8L)
 
     override fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray =
         KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, parameter.SUFFIX)
-            .also { super.update(PADDING) }
+            .also { addKMACPrePadding(key, customization) }
 
     override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
         HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, outputLength)
-            .also { super.update(PADDING) }
+            .also { addKMACPrePadding(key, customization) }
 
     companion object {
         @get:JvmName("getParameter")
@@ -89,28 +86,12 @@ class KMAC256(
             outputLength: Int = PARAMETER.minLength / 8,
             customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER, outputLength) {
             init {
-                super.write(prePadding(key, customization))
+                addKMACPrePadding(key, customization)
             }
 
             override fun beforeClose() {
                 super.write(KeccakMath.rightEncode(outputLength * 8L))
             }
         }
-
-        private fun prePadding(key: ByteArray, customization: ByteArray): ByteArray = byteArrayOf(
-            *KeccakMath.padBytes( //T
-                byteArrayOf(
-                    *KeccakConstants.KMAC_ENCODED,
-                    *KeccakMath.encodeStringBytes(customization)
-                ),
-                PARAMETER.BYTERATE
-            ),
-            *KeccakMath.padBytes( //newX
-                byteArrayOf(
-                    *KeccakMath.encodeStringBytes(key)
-                ),
-                PARAMETER.BYTERATE
-            )
-        )
     }
 }
