@@ -59,22 +59,21 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 
 ParallelHash Functions might need to add coroutine as a dependency.
 
-## Tested Platforms
-* JVM (Kotlin, Java)
+## Supported and Tested Targets
 
-## Supported Targets
-
-| Target                    | Arm32              | Arm64              | X64                |
-|---------------------------|--------------------|--------------------|--------------------|
-| JVM (Kotlin & Java)       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| JS (Node, Bun, & Browser) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Linux                     | :x: *              | :white_check_mark: | :white_check_mark: |
-| Windows (Mingw)           | :x: *              | :x: *              | :white_check_mark: |
-| Android                   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| iOS                       | :x: *              | :white_check_mark: | :white_check_mark: |
-| iOS Simulator             | :x: *              | :white_check_mark: | :x: *              |
+| Target                      | Arm32              | Arm64              | X64                |
+|-----------------------------|--------------------|--------------------|--------------------|
+| JVM (Kotlin & Java)         | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| JS (Node, Bun, & Browser)** | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| Linux                       | :x: *              | :white_check_mark: | :white_check_mark: |
+| Windows (Mingw)             | :x: *              | :x: *              | :white_check_mark: |
+| Android                     | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| iOS                         | :x: *              | :white_check_mark: | :white_check_mark: |
+| iOS Simulator               | :x: *              | :white_check_mark: | :x: *              |
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
+
+**JS is not tested on its own. Rather, its correctness is proven by the other tested targets.
 
 ## Installation
 Maven/Gradle
