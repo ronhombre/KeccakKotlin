@@ -36,7 +36,7 @@ jobs:
 
       - run: |
           chmod +x gradlew
-          ./gradlew :iosArm64Test --tests "asia.hombre.kyber.Tests"
+          ./gradlew :iosArm64Test --tests "asia.hombre.keccak.Tests"
 
   ios-arm-sim-test:
     name: "iosSimulatorArm64Test"
@@ -66,4 +66,4 @@ jobs:
 
       - run: |
           chmod +x gradlew
-          ./gradlew :iosSimulatorArm64Test --tests "asia.hombre.kyber.Tests"
+          ./gradlew :iosSimulatorArm64Test --tests "asia.hombre.keccak.Tests"

@@ -36,4 +36,4 @@ jobs:
 
       - run: |
           chmod +x gradlew
-          ./gradlew :jvmTest --tests "asia.hombre.kyber.Tests"
+          ./gradlew :jvmTest --tests "asia.hombre.keccak.Tests"
