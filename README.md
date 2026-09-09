@@ -1,4 +1,4 @@
-# KeccakKotlin (2.1.1)
+# KeccakKotlin (2.2.0)
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -17,6 +17,10 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend on any third-party library.
 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
+
+> [!NOTE]
+> 2.2.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and
+> iosSimulatorArm64 as well as Kotlin 2.4.20 and Gradle 9.7.1.
 
 ## Capabilities (NIST FIPS 202)
 * SHA3-224 (Byte Stream-able)
@@ -60,21 +64,19 @@ ParallelHash Functions might need to add coroutine as a dependency.
 |---------------------------|--------------------|--------------------|--------------------|
 | JVM (Kotlin & Java)       | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 | JS (Node, Bun, & Browser) | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Linux                     | :x: *              | :x: **             | :white_check_mark: |
+| Linux                     | :x: *              | :white_check_mark: | :white_check_mark: |
 | Windows (Mingw)           | :x: *              | :x: *              | :white_check_mark: |
 | Android                   | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| iOS                       | :x: *              | :x: **             | :x: **             |
-| iOS Simulator             | :x: *              | :x: **             | :x: *              |
+| iOS                       | :x: *              | :white_check_mark: | :white_check_mark: |
+| iOS Simulator             | :x: *              | :white_check_mark: | :x: *              |
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
-
-**These targets are currently available, but I have no ability to compile them **yet**. Once I have more free time, I will set up a publishing server to compile to all targets.
 
 ## Installation
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:2.1.1")
+    implementation("asia.hombre:keccak:2.2.0")
 }
 ```
 
@@ -135,7 +137,7 @@ View the java example [here](https://github.com/ronhombre/KeccakKotlin/blob/mast
 ### License
 
 ```
-Copyright 2025 Ron Lauren Hombre
+Copyright 2026 Ron Lauren Hombre
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
