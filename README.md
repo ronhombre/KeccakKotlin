@@ -1,4 +1,4 @@
-# KeccakKotlin (2.2.0)
+# KeccakKotlin (2.3.0)
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -19,8 +19,12 @@ This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
 > [!NOTE]
-> 2.2.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and
+> 2.3.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and
 > iosSimulatorArm64 as well as Kotlin 2.4.20 and Gradle 9.7.1.
+
+
+> [!WARNING]
+> 2.2.0 was skipped! This is due to an error in the maven publishing.
 
 ## Capabilities (NIST FIPS 202)
 * SHA3-224 (Byte Stream-able)
