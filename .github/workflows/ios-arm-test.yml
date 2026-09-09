@@ -35,6 +35,7 @@ jobs:
           java-version: '21'
 
       - run: |
+          chmod +x gradlew
           ./gradlew :iosArm64Test --tests "asia.hombre.kyber.Tests"
 
   ios-arm-sim-test:
