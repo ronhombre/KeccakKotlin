@@ -80,7 +80,7 @@ ParallelHash Functions might need to add coroutine as a dependency.
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:2.2.0")
+    implementation("asia.hombre:keccak:2.3.0")
 }
 ```
 
