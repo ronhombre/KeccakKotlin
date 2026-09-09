@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-stage:
     name: Build & Stage on ${{ matrix.os }}
+    environment: "Maven Central SONA"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -74,6 +75,7 @@ jobs:
 
   deploy:
     name: Bundle and Deploy to Maven Central
+    environment: "Maven Central SONA"
     needs: build-and-stage
     runs-on: ubuntu-latest
     steps:
