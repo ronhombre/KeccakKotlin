@@ -24,10 +24,14 @@ jobs:
           java-version: '21'
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@v7
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          fingerprint: "7B381D196BA74C9FA7CEEE84854D0560FEF4601F"
+
+      - name: List keys
+        run: gpg -K
 
       - name: Publish Linux, JVM, JS, Android, and Root Metadata
         env:
