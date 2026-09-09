@@ -24,7 +24,7 @@ repositories {
 
 kotlin {
     jvm()
-    js(IR) {
+    js {
         nodejs()
         browser {
 
@@ -41,7 +41,7 @@ kotlin {
     androidNativeArm64()
     androidNativeX64()
     sourceSets {
-        val commonTest by getting {
+        getByName("commonTest") {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test")
             }

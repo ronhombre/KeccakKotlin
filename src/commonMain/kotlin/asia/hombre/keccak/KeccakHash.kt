@@ -33,7 +33,7 @@ object KeccakHash {
     @JvmSynthetic
     internal fun generateDirect(parameter: KeccakParameter, chunks: Pair<Array<ByteArray>, Int>, suffix: FlexiByte, stateBuffer: SplitByteArray, state: Array<LongArray>) {
         val addAnother = chunks.second == parameter.BYTERATE
-        val validatedChunks = Array<ByteArray>(chunks.first.size + (if(addAnother) 1 else 0)) { i ->
+        val validatedChunks = Array(chunks.first.size + (if(addAnother) 1 else 0)) { i ->
             if(addAnother && i == chunks.first.size) {
                 ByteArray(parameter.BYTERATE)
             } else {
@@ -43,7 +43,7 @@ object KeccakHash {
 
         KeccakMath.pad10n1Direct(validatedChunks[validatedChunks.lastIndex], (if(addAnother) 0 else chunks.second), suffix)
 
-        validatedChunks.forEachIndexed { i, it ->
+        validatedChunks.forEachIndexed { _, it ->
             stateBuffer.a = it
 
             for(x in 0..<5) for(y in 0..<5)

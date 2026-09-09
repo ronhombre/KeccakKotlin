@@ -29,6 +29,7 @@ import kotlin.jvm.JvmField
  *
  * @author Ron Lauren Hombre
  */
+@Suppress("PropertyName")
 enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: Int, val CAPACITY: Int, internal val SUFFIX: FlexiByte) {
     /**
      * Keccak[448](M||01, 224)

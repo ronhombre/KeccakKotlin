@@ -12,12 +12,12 @@ import kotlin.math.min
  * @author Ron Lauren Hombre
  */
 internal class FlexiByte internal constructor(private val byte: Byte, val bitIndex: Int) : Number(), Comparable<Byte> {
-    companion object {
-        /**
+    /*companion object {
+        **
          * Construct a [FlexiByte] from a string of 1s and 0s.
          *
          * Any 1s become a bit 1 and anything else whether they are 0s or not become a bit 0.
-         */
+         *
         @JvmStatic
         fun fromString(string: String): FlexiByte {
             val cleanedInput = string.trim()
@@ -34,7 +34,7 @@ internal class FlexiByte internal constructor(private val byte: Byte, val bitInd
 
             return FlexiByte(outputByte, bitIndex)
         }
-    }
+    }*/
 
     override fun compareTo(other: Byte): Int {
         return byte.compareTo(other)
