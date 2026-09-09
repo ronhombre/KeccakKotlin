@@ -32,11 +32,11 @@ kotlin {
         binaries.executable()
     }
     linuxX64()
-    //linuxArm64()
+    linuxArm64()
     mingwX64()
-    //iosArm64()
-    //iosX64()
-    //iosSimulatorArm64()
+    iosArm64()
+    iosX64()
+    iosSimulatorArm64()
     androidNativeArm32()
     androidNativeArm64()
     androidNativeX64()
@@ -157,7 +157,7 @@ for (publication in publishing.publications.asMap) {
 
 tasks.register("bundleAll") {
     group = "Bundle"
-    dependsOn("publish")
+    //dependsOn("publish")
 
     for (publication in publishing.publications.asMap) {
         val artifact = publication.value as MavenPublication
