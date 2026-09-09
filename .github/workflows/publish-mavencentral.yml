@@ -6,25 +6,96 @@ on:
       - published
 
 jobs:
-  publishmaven:
-    name: Publish To Maven
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-
+  build-and-stage:
+    name: Build & Stage on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
       matrix:
-        language: [ 'java-kotlin' ]
-
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Tests
-        run: chmod +x gradlew && ./gradlew :cleanJvmTest :jvmTest --tests "asia.hombre.keccak.Tests"
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: corretto
+          java-version: '21'
 
-      - name: Publish
-        run: chmod +x gradlew && ./gradlew :publishAllToMavenCentral
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish Linux, JVM, JS, Android, and Root Metadata
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew \
+          publishJvmPublicationToMavenRepository \
+          publishJsPublicationToMavenRepository \
+          publishLinuxX64PublicationToMavenRepository \
+          publishLinuxArm64PublicationToMavenRepository \
+          publishAndroidNativeArm32PublicationToMavenRepository \
+          publishAndroidNativeArm64PublicationToMavenRepository \
+          publishAndroidNativeX64PublicationToMavenRepository \
+          publishKotlinMultiplatformPublicationToMavenRepository \
+          -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }} \
+          -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish Apple Targets
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew \
+          publishIosArm64PublicationToMavenRepository \
+          publishIosX64PublicationToMavenRepository \
+          publishIosSimulatorArm64PublicationToMavenRepository \
+          -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }} \
+          -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Publish Windows Targets
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          ./gradlew publishMingwX64PublicationToMavenRepository \
+          -Psigning.gnupg.keyName=${{ secrets.GPG_KEY_ID }} \
+          -Psigning.gnupg.passphrase=${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Upload staged maven artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-staged-${{ matrix.os }}
+          path: maven/
+          retention-days: 1
+
+  deploy:
+    name: Bundle and Deploy to Maven Central
+    needs: build-and-stage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: corretto
+          java-version: '21'
+
+      - name: Download all staged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: maven-staged-*
+          path: maven/
+          merge-multiple: true
+
+      - name: Publish to Maven Central
+        env:
+          SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+        run: |
+          chmod +x gradlew
+          ./gradlew :publishAllToMavenCentral
