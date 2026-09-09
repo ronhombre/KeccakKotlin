@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "2.1.1"
+version = "2.2.0"
 description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
