@@ -62,9 +62,6 @@ publishing {
             url = mavenDir.toURI()
         }
     }
-    publications.withType<MavenPublication>().configureEach {
-        artifactId = projectName + if (artifactId.contains("-")) "-" + artifactId.split("-").last() else ""
-    }
     publications.withType<MavenPublication> {
         // Stub javadoc.jar artifact
         artifact(tasks.register("${name}JavadocJar", Jar::class) {
@@ -103,8 +100,8 @@ fun parseArtifactId(artifactId: String): String {
     return list.joinToString("")
 }
 
-fun parseArtifactArchiveName(artifact: MavenPublication): String {
-    return artifact.artifactId + "-" + artifact.version + "-bundle.zip"
+fun parseArtifactArchiveName(artifactName: String, version: String): String {
+    return "$artifactName-$version-bundle.zip"
 }
 
 val bundleAllTask = tasks.register("bundleAll") {
@@ -119,12 +116,12 @@ val publishAllTask = tasks.register("publishAllToMavenCentral") {
     dependsOn("bundleAll")
 }
 
-afterEvaluate {
+gradle.projectsEvaluated {
     publishing.publications.withType<MavenPublication>().configureEach {
+        artifactId = projectName + if (artifactId.contains("-")) "-" + artifactId.split("-").last() else ""
         val artifact = this
         val pubNameCap = artifact.name.replaceFirstChar { it.uppercase() }
-        val bundleFileName = parseArtifactArchiveName(artifact)
-
+        val bundleFileName = parseArtifactArchiveName(artifact.artifactId, artifact.version)
         val bundleTask = tasks.register<Zip>("bundle$pubNameCap") {
             description = "Bundles the Maven Artifact"
             group = "Bundle"
@@ -169,7 +166,7 @@ afterEvaluate {
 
 dokka {
     pluginsConfiguration.html {
-        footerMessage = "Copyright (c) 2025 Ron Lauren Hombre"
+        footerMessage = "Copyright (c) 2026 Ron Lauren Hombre"
     }
 
     dokkaPublications.html {
