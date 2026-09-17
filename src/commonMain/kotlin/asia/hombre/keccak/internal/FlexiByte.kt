@@ -1,9 +1,5 @@
 package asia.hombre.keccak.internal
 
-import kotlin.experimental.or
-import kotlin.jvm.JvmStatic
-import kotlin.math.min
-
 /**
  * This is an extension of the Byte class for non-byte size inputs.
  *

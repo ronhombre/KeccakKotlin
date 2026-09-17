@@ -18,9 +18,8 @@
 
 package asia.hombre.keccak.streams
 
-import asia.hombre.keccak.internal.FlexiByte
-import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
+import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.internal.SplitByteArray
 import kotlin.jvm.JvmName
@@ -40,8 +39,9 @@ class HashOutputStream {
     @get:JvmName("getParameter")
     val PARAMETER: KeccakParameter
 
-    private val state: Array<LongArray>
+    private val state: LongArray
     private val stateBuffer: SplitByteArray
+    private var ghost: KeccakMath.GhostArena
     private var used = 0
     private val squeezable: Boolean
         get() = when(PARAMETER) {
@@ -55,45 +55,17 @@ class HashOutputStream {
             KeccakParameter.KMAC_256 -> false
             else -> true
         }
-    private val maxOutputLength: Int
+    internal val maxOutputLength: Int
     private var totalOutputLength = 0
 
     /**
      * This constructor assumes that the caller can be trusted which is the case since the visibility is `internal`.
      *
-     * DO NOT MAKE THIS PUBLIC.
-     */
-    internal constructor(parameter: KeccakParameter, suffix: FlexiByte, chunks: Pair<Array<ByteArray>, Int>, maxOutputLength: Int = parameter.maxLength / 8) {
-        if(chunks.first.isEmpty()) throw IllegalArgumentException("Must have at least one chunk.")
-
-        PARAMETER = parameter
-
-        //Commented out since it's redundant given this is an internal part.
-        /*chunks.first.forEachIndexed { i, it ->
-            if(it.size != PARAMETER.BYTERATE)
-                throw IllegalStateException("Bad chunks supplied. Expected ${PARAMETER.BYTERATE} but got ${it.size}")
-        }*/
-
-        stateBuffer = SplitByteArray(ByteArray(PARAMETER.BYTERATE), ByteArray(200 - PARAMETER.BYTERATE))
-        state = Array(5) { LongArray(5) }
-
-        this.maxOutputLength = maxOutputLength
-
-        KeccakHash.generateDirect(PARAMETER, chunks, suffix, stateBuffer, state)
-
-        chunks.first.forEach { it.fill(0) }
-
-        //Drops reference to a ByteArray which is a part of `chunks` to allow the GC to clean `chunks` up.
-        stateBuffer.a = ByteArray(PARAMETER.BYTERATE)
-        KeccakMath.directMatrixToBytes(state, stateBuffer)
-    }
-
-    /**
-     * This constructor assumes that the caller can be trusted which is the case since the visibility is `internal`.
+     * This inherits everything from [HashInputStream].
      *
      * DO NOT MAKE THIS PUBLIC.
      */
-    internal constructor(parameter: KeccakParameter, completedState: Array<LongArray>, maxOutputLength: Int = parameter.maxLength / 8) {
+    internal constructor(parameter: KeccakParameter, completedState: LongArray, buffer: SplitByteArray, ghost: KeccakMath.GhostArena, maxOutputLength: Int = parameter.maxLength / 8) {
         PARAMETER = parameter
 
         //Commented out since it's redundant given this is an internal part.
@@ -106,8 +78,9 @@ class HashOutputStream {
 
         this.maxOutputLength = maxOutputLength
 
-        state = completedState
-        stateBuffer = SplitByteArray(ByteArray(PARAMETER.BYTERATE), ByteArray(200 - PARAMETER.BYTERATE))
+        this.state = completedState
+        this.stateBuffer = buffer
+        this.ghost = ghost
         KeccakMath.directMatrixToBytes(state, stateBuffer)
     }
 
@@ -119,7 +92,7 @@ class HashOutputStream {
         if(!hasNext()) throw IllegalArgumentException("This parameter $PARAMETER only supports a total output of $maxOutputLength bytes. This is not an extendable function.")
         if(used < stateBuffer.a.size) return
 
-        KeccakMath.directPermute(state)
+        KeccakMath.directPermute(state, ghost)
         KeccakMath.directMatrixToBytes(state, stateBuffer)
 
         used = 0
@@ -267,4 +240,27 @@ class HashOutputStream {
      * @since 2.0.0
      */
     fun hasNext(): Boolean = squeezable || totalOutputLength < maxOutputLength
+
+    /**
+     * Detaches this stream from its parent's permute scratch arena, giving it its own.
+     *
+     * Use this when you intend to hand this stream off to a different thread than the one
+     * that owns the [AbstractKeccakFunction] (or [HashInputStream]) that produced it, while
+     * the parent continues to be used on the original thread.
+     *
+     * Redundant if the producing [HashInputStream] already had [HashInputStream.detachScratch]
+     * called on it before [HashInputStream.close]; in that case this stream already has its own arena.
+     *
+     * This does NOT make the stream safe for concurrent access. A single stream must still
+     * be used by one thread at a time. If you need concurrent hashing, use a separate
+     * [AbstractKeccakFunction] instance per thread.
+     *
+     * Allocates one [KeccakMath.GhostArena] (~240 bytes). Idempotent; calling twice
+     * discards the previous arena and allocates a fresh one.
+     *
+     * @since 2.4.0
+     */
+    fun detachScratch() {
+        ghost = KeccakMath.GhostArena()
+    }
 }

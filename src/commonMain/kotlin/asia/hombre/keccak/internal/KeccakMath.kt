@@ -19,6 +19,8 @@
 package asia.hombre.keccak.internal
 
 import asia.hombre.keccak.KeccakConstants
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.experimental.or
 import kotlin.jvm.JvmSynthetic
 import kotlin.math.max
@@ -43,8 +45,8 @@ internal object KeccakMath {
             ((long shr 32) and 0xFF).toByte(),
             ((long shr 24) and 0xFF).toByte(),
             ((long shr 16) and 0xFF).toByte(),
-            ((long shr 8) and 0xFF).toByte(),
-            (long and 0xFF).toByte()
+            ((long shr 8)  and 0xFF).toByte(),
+            ( long         and 0xFF).toByte()
         )
     }
 
@@ -59,124 +61,152 @@ internal object KeccakMath {
     }
 
     /**
+     * An intermediate arena for temporary Keccak data.
+     */
+    @OptIn(ExperimentalAtomicApi::class)
+    internal class GhostArena {
+        val a = LongArray(5)
+        val b = LongArray(25)
+
+        private val inUse = AtomicBoolean(false)
+
+        inline fun <T> use(block: () -> T): T {
+            check(inUse.compareAndSet(expectedValue = false, newValue = true)) {
+                """
+                    Concurrent use of the same AbstractKeccakFunction instance detected.
+                    
+                    Each AbstractKeccakFunction and its input and output streams share a single
+                    permute scratch arena (GhostArena). Two threads cannot permute() at the same
+                    time on the same arena.
+                    
+                    To fix this, either:
+                      - Call detachScratch() on the HashOutputStream (or HashInputStream) before
+                        handing it to another thread, or
+                      - Use a separate AbstractKeccakFunction instance per thread.
+                """.trimIndent()
+            }
+            try {
+                return block()
+            } finally {
+                a.fill(0)
+                b.fill(0)
+                inUse.store(false)
+            }
+        }
+    }
+
+    /**
      * I believe this is already quite close to the most optimal version but additional performance might be found in
      * re-ordering and simplifying the common operations. Please investigate if you have time.
      */
     @JvmSynthetic
-    fun directPermute(state: Array<LongArray>) {
-        val c = LongArray(5)
-        val d = LongArray(5)
-
-        val preliminaryState = Array<LongArray>(5) { LongArray(5) }
-
-        for(i in 0..<24) {
+    fun directPermute(state: LongArray, ghost: GhostArena) = ghost.use {
+        repeat(24) { i ->
             //Theta (Parity Calculation) + Rho (Rotate bits) + Pi (Rearrange lanes)
-            c[0] = state[0][0] xor state[0][1] xor state[0][2] xor state[0][3] xor state[0][4]
-            c[1] = state[1][0] xor state[1][1] xor state[1][2] xor state[1][3] xor state[1][4]
-            c[2] = state[2][0] xor state[2][1] xor state[2][2] xor state[2][3] xor state[2][4]
-            c[3] = state[3][0] xor state[3][1] xor state[3][2] xor state[3][3] xor state[3][4]
-            c[4] = state[4][0] xor state[4][1] xor state[4][2] xor state[4][3] xor state[4][4]
+            ghost.b[0] = state[0] xor state[1] xor state[2] xor state[3] xor state[4]
+            ghost.b[1] = state[5] xor state[6] xor state[7] xor state[8] xor state[9]
+            ghost.b[2] = state[10] xor state[11] xor state[12] xor state[13] xor state[14]
+            ghost.b[3] = state[15] xor state[16] xor state[17] xor state[18] xor state[19]
+            ghost.b[4] = state[20] xor state[21] xor state[22] xor state[23] xor state[24]
 
-            d[0] = c[4] xor c[1].rotateLeft(1)
-            d[1] = c[0] xor c[2].rotateLeft(1)
-            d[2] = c[1] xor c[3].rotateLeft(1)
-            d[3] = c[2] xor c[4].rotateLeft(1)
-            d[4] = c[3] xor c[0].rotateLeft(1)
+            //Reuse parts of the preliminary state to prevent the need to initialize another LongArray
+            ghost.a[0] = ghost.b[4] xor ghost.b[1].rotateLeft(1)
+            ghost.a[1] = ghost.b[0] xor ghost.b[2].rotateLeft(1)
+            ghost.a[2] = ghost.b[1] xor ghost.b[3].rotateLeft(1)
+            ghost.a[3] = ghost.b[2] xor ghost.b[4].rotateLeft(1)
+            ghost.a[4] = ghost.b[3] xor ghost.b[0].rotateLeft(1)
 
-            preliminaryState[0][0] = (state[0][0] xor d[0])
-            preliminaryState[0][1] = (state[3][0] xor d[3]).rotateLeft(28)
-            preliminaryState[0][2] = (state[1][0] xor d[1]).rotateLeft(1)
-            preliminaryState[0][3] = (state[4][0] xor d[4]).rotateLeft(27)
-            preliminaryState[0][4] = (state[2][0] xor d[2]).rotateLeft(62)
-            preliminaryState[1][0] = (state[1][1] xor d[1]).rotateLeft(44)
-            preliminaryState[1][1] = (state[4][1] xor d[4]).rotateLeft(20)
-            preliminaryState[1][2] = (state[2][1] xor d[2]).rotateLeft(6)
-            preliminaryState[1][3] = (state[0][1] xor d[0]).rotateLeft(36)
-            preliminaryState[1][4] = (state[3][1] xor d[3]).rotateLeft(55)
-            preliminaryState[2][0] = (state[2][2] xor d[2]).rotateLeft(43)
-            preliminaryState[2][1] = (state[0][2] xor d[0]).rotateLeft(3)
-            preliminaryState[2][2] = (state[3][2] xor d[3]).rotateLeft(25)
-            preliminaryState[2][3] = (state[1][2] xor d[1]).rotateLeft(10)
-            preliminaryState[2][4] = (state[4][2] xor d[4]).rotateLeft(39)
-            preliminaryState[3][0] = (state[3][3] xor d[3]).rotateLeft(21)
-            preliminaryState[3][1] = (state[1][3] xor d[1]).rotateLeft(45)
-            preliminaryState[3][2] = (state[4][3] xor d[4]).rotateLeft(8)
-            preliminaryState[3][3] = (state[2][3] xor d[2]).rotateLeft(15)
-            preliminaryState[3][4] = (state[0][3] xor d[0]).rotateLeft(41)
-            preliminaryState[4][0] = (state[4][4] xor d[4]).rotateLeft(14)
-            preliminaryState[4][1] = (state[2][4] xor d[2]).rotateLeft(61)
-            preliminaryState[4][2] = (state[0][4] xor d[0]).rotateLeft(18)
-            preliminaryState[4][3] = (state[3][4] xor d[3]).rotateLeft(56)
-            preliminaryState[4][4] = (state[1][4] xor d[1]).rotateLeft(2)
+            ghost.b[0] = (state[0] xor ghost.a[0])
+            ghost.b[1] = (state[15] xor ghost.a[3]).rotateLeft(28)
+            ghost.b[2] = (state[5] xor ghost.a[1]).rotateLeft(1)
+            ghost.b[3] = (state[20] xor ghost.a[4]).rotateLeft(27)
+            ghost.b[4] = (state[10] xor ghost.a[2]).rotateLeft(62)
+            ghost.b[5] = (state[6] xor ghost.a[1]).rotateLeft(44)
+            ghost.b[6] = (state[21] xor ghost.a[4]).rotateLeft(20)
+            ghost.b[7] = (state[11] xor ghost.a[2]).rotateLeft(6)
+            ghost.b[8] = (state[1] xor ghost.a[0]).rotateLeft(36)
+            ghost.b[9] = (state[16] xor ghost.a[3]).rotateLeft(55)
+            ghost.b[10] = (state[12] xor ghost.a[2]).rotateLeft(43)
+            ghost.b[11] = (state[2] xor ghost.a[0]).rotateLeft(3)
+            ghost.b[12] = (state[17] xor ghost.a[3]).rotateLeft(25)
+            ghost.b[13] = (state[7] xor ghost.a[1]).rotateLeft(10)
+            ghost.b[14] = (state[22] xor ghost.a[4]).rotateLeft(39)
+            ghost.b[15] = (state[18] xor ghost.a[3]).rotateLeft(21)
+            ghost.b[16] = (state[8] xor ghost.a[1]).rotateLeft(45)
+            ghost.b[17] = (state[23] xor ghost.a[4]).rotateLeft(8)
+            ghost.b[18] = (state[13] xor ghost.a[2]).rotateLeft(15)
+            ghost.b[19] = (state[3] xor ghost.a[0]).rotateLeft(41)
+            ghost.b[20] = (state[24] xor ghost.a[4]).rotateLeft(14)
+            ghost.b[21] = (state[14] xor ghost.a[2]).rotateLeft(61)
+            ghost.b[22] = (state[4] xor ghost.a[0]).rotateLeft(18)
+            ghost.b[23] = (state[19] xor ghost.a[3]).rotateLeft(56)
+            ghost.b[24] = (state[9] xor ghost.a[1]).rotateLeft(2)
 
             //Chi (XOR lanes) + Iota (Modify the first lane with a predefined value unique for each round)
-            state[0][0] = preliminaryState[0][0] xor (preliminaryState[1][0].inv() and preliminaryState[2][0]) xor KeccakConstants.ROUND[i]
-            state[0][1] = preliminaryState[0][1] xor (preliminaryState[1][1].inv() and preliminaryState[2][1])
-            state[0][2] = preliminaryState[0][2] xor (preliminaryState[1][2].inv() and preliminaryState[2][2])
-            state[0][3] = preliminaryState[0][3] xor (preliminaryState[1][3].inv() and preliminaryState[2][3])
-            state[0][4] = preliminaryState[0][4] xor (preliminaryState[1][4].inv() and preliminaryState[2][4])
-            state[1][0] = preliminaryState[1][0] xor (preliminaryState[2][0].inv() and preliminaryState[3][0])
-            state[1][1] = preliminaryState[1][1] xor (preliminaryState[2][1].inv() and preliminaryState[3][1])
-            state[1][2] = preliminaryState[1][2] xor (preliminaryState[2][2].inv() and preliminaryState[3][2])
-            state[1][3] = preliminaryState[1][3] xor (preliminaryState[2][3].inv() and preliminaryState[3][3])
-            state[1][4] = preliminaryState[1][4] xor (preliminaryState[2][4].inv() and preliminaryState[3][4])
-            state[2][0] = preliminaryState[2][0] xor (preliminaryState[3][0].inv() and preliminaryState[4][0])
-            state[2][1] = preliminaryState[2][1] xor (preliminaryState[3][1].inv() and preliminaryState[4][1])
-            state[2][2] = preliminaryState[2][2] xor (preliminaryState[3][2].inv() and preliminaryState[4][2])
-            state[2][3] = preliminaryState[2][3] xor (preliminaryState[3][3].inv() and preliminaryState[4][3])
-            state[2][4] = preliminaryState[2][4] xor (preliminaryState[3][4].inv() and preliminaryState[4][4])
-            state[3][0] = preliminaryState[3][0] xor (preliminaryState[4][0].inv() and preliminaryState[0][0])
-            state[3][1] = preliminaryState[3][1] xor (preliminaryState[4][1].inv() and preliminaryState[0][1])
-            state[3][2] = preliminaryState[3][2] xor (preliminaryState[4][2].inv() and preliminaryState[0][2])
-            state[3][3] = preliminaryState[3][3] xor (preliminaryState[4][3].inv() and preliminaryState[0][3])
-            state[3][4] = preliminaryState[3][4] xor (preliminaryState[4][4].inv() and preliminaryState[0][4])
-            state[4][0] = preliminaryState[4][0] xor (preliminaryState[0][0].inv() and preliminaryState[1][0])
-            state[4][1] = preliminaryState[4][1] xor (preliminaryState[0][1].inv() and preliminaryState[1][1])
-            state[4][2] = preliminaryState[4][2] xor (preliminaryState[0][2].inv() and preliminaryState[1][2])
-            state[4][3] = preliminaryState[4][3] xor (preliminaryState[0][3].inv() and preliminaryState[1][3])
-            state[4][4] = preliminaryState[4][4] xor (preliminaryState[0][4].inv() and preliminaryState[1][4])
+            state[0] = ghost.b[0] xor (ghost.b[5].inv() and ghost.b[10]) xor KeccakConstants.ROUND[i]
+            state[1] = ghost.b[1] xor (ghost.b[6].inv() and ghost.b[11])
+            state[2] = ghost.b[2] xor (ghost.b[7].inv() and ghost.b[12])
+            state[3] = ghost.b[3] xor (ghost.b[8].inv() and ghost.b[13])
+            state[4] = ghost.b[4] xor (ghost.b[9].inv() and ghost.b[14])
+            state[5] = ghost.b[5] xor (ghost.b[10].inv() and ghost.b[15])
+            state[6] = ghost.b[6] xor (ghost.b[11].inv() and ghost.b[16])
+            state[7] = ghost.b[7] xor (ghost.b[12].inv() and ghost.b[17])
+            state[8] = ghost.b[8] xor (ghost.b[13].inv() and ghost.b[18])
+            state[9] = ghost.b[9] xor (ghost.b[14].inv() and ghost.b[19])
+            state[10] = ghost.b[10] xor (ghost.b[15].inv() and ghost.b[20])
+            state[11] = ghost.b[11] xor (ghost.b[16].inv() and ghost.b[21])
+            state[12] = ghost.b[12] xor (ghost.b[17].inv() and ghost.b[22])
+            state[13] = ghost.b[13] xor (ghost.b[18].inv() and ghost.b[23])
+            state[14] = ghost.b[14] xor (ghost.b[19].inv() and ghost.b[24])
+            state[15] = ghost.b[15] xor (ghost.b[20].inv() and ghost.b[0])
+            state[16] = ghost.b[16] xor (ghost.b[21].inv() and ghost.b[1])
+            state[17] = ghost.b[17] xor (ghost.b[22].inv() and ghost.b[2])
+            state[18] = ghost.b[18] xor (ghost.b[23].inv() and ghost.b[3])
+            state[19] = ghost.b[19] xor (ghost.b[24].inv() and ghost.b[4])
+            state[20] = ghost.b[20] xor (ghost.b[0].inv() and ghost.b[5])
+            state[21] = ghost.b[21] xor (ghost.b[1].inv() and ghost.b[6])
+            state[22] = ghost.b[22] xor (ghost.b[2].inv() and ghost.b[7])
+            state[23] = ghost.b[23] xor (ghost.b[3].inv() and ghost.b[8])
+            state[24] = ghost.b[24] xor (ghost.b[4].inv() and ghost.b[9])
         }
-
-        //Clear arrays after use
-        c.fill(0)
-        d.fill(0)
-        preliminaryState.forEach { it.fill(0) }
     }
 
     @JvmSynthetic
-    fun getLongAt(source: SplitByteArray, x: Int, y: Int, except: Int): Long {
+    fun getLongAt(source: ByteArray, x: Int, y: Int): Long {
         val offset = (x + (5 * y)) shl 3
 
-        if((offset + 7) > except) return 0L
+        if(offset + 8 > source.size) return 0
 
-        return (source[offset].toLong() and 0xFF) or
-                ((source[offset + 1].toLong() and 0xFF) shl 8)   or
-                ((source[offset + 2].toLong() and 0xFF) shl 16)  or
-                ((source[offset + 3].toLong() and 0xFF) shl 24)  or
-                ((source[offset + 4].toLong() and 0xFF) shl 32)  or
-                ((source[offset + 5].toLong() and 0xFF) shl 40)  or
-                ((source[offset + 6].toLong() and 0xFF) shl 48)  or
-                (source[offset + 7].toLong() shl 56)
+        return (  source[offset    ].toLong() and 0xFF) or
+                ((source[offset + 1].toLong() and 0xFF) shl  8) or
+                ((source[offset + 2].toLong() and 0xFF) shl 16) or
+                ((source[offset + 3].toLong() and 0xFF) shl 24) or
+                ((source[offset + 4].toLong() and 0xFF) shl 32) or
+                ((source[offset + 5].toLong() and 0xFF) shl 40) or
+                ((source[offset + 6].toLong() and 0xFF) shl 48) or
+                ( source[offset + 7].toLong()           shl 56)
     }
 
     @JvmSynthetic
-    fun directMatrixToBytes(matrix: Array<LongArray>, destination: SplitByteArray) {
-        for(x in 0..<5)
-            for(y in 0..<5)
-                directLongToBytes(matrix[x][y], destination, (x + (5 * y)) shl 3)
-    }
+    fun directMatrixToBytes(matrix: LongArray, destination: SplitByteArray) {
+        require(matrix.size == 25)         { "Matrix too small" } //JVM JIT guarantee
+        require(destination.size == 200)   { "Out of bounds" } //JVM JIT guarantee
 
-    @JvmSynthetic
-    fun directLongToBytes(long: Long, destination: SplitByteArray, offset: Int) {
-        require(offset + 7 < destination.size) { "Out of bounds" }
-        destination[offset] = (long and 0xFF).toByte()
-        destination[offset + 1] = ((long shr 8) and 0xFF).toByte()
-        destination[offset + 2] = ((long shr 16) and 0xFF).toByte()
-        destination[offset + 3] = ((long shr 24) and 0xFF).toByte()
-        destination[offset + 4] = ((long shr 32) and 0xFF).toByte()
-        destination[offset + 5] = ((long shr 40) and 0xFF).toByte()
-        destination[offset + 6] = ((long shr 48) and 0xFF).toByte()
-        destination[offset + 7] = ((long shr 56) and 0xFF).toByte()
+        var offset = 0
+        for (y in 0..<5) {
+            for (x in 0..<5) {
+                val v = matrix[5 * x + y]
+                destination[offset]     =  v.toByte()
+                destination[offset + 1] = (v ushr 8).toByte()
+                destination[offset + 2] = (v ushr 16).toByte()
+                destination[offset + 3] = (v ushr 24).toByte()
+                destination[offset + 4] = (v ushr 32).toByte()
+                destination[offset + 5] = (v ushr 40).toByte()
+                destination[offset + 6] = (v ushr 48).toByte()
+                destination[offset + 7] = (v ushr 56).toByte()
+                offset += 8
+            }
+        }
     }
 
     /**

@@ -18,18 +18,28 @@
 
 package asia.hombre.keccak.internal
 
+import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.api.KeccakInstance
+import asia.hombre.keccak.streams.HashInputStream
 import asia.hombre.keccak.streams.HashOutputStream
 
 /**
- * A wrapper class for [UniversalDigestor] so each API class will use the same underlying code with minimal boilerplate.
+ * A wrapper class for [HashInputStream] so each API class will use the same underlying code with minimal boilerplate.
  *
  * @author Ron Lauren Hombre
  * @since 2.0.0
  */
 @Suppress("unused")
-abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int): KeccakInstance {
-    private val digestor: UniversalDigestor = UniversalDigestor(initialCapacity)
+abstract class AbstractKeccakFunction internal constructor(
+    private val initialCapacity: Int,
+    override val parameter: KeccakParameter,
+    open val outputLength: Int
+): KeccakInstance {
+    private val ghost = KeccakMath.GhostArena()
+    private var inputStream: HashInputStream? = null
+
+    private val currentStream: HashInputStream
+        get() = inputStream ?: newInputStream(ghost).also { inputStream = it }
 
     /**
      * Copies a byte into the buffer.
@@ -37,7 +47,7 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @param byte [Byte]
      * @since 2.0.0
      */
-    fun update(byte: Byte) = digestor.digestSingle(byte)
+    fun update(byte: Byte) = currentStream.write(byte)
 
     /**
      * Copies an array of bytes into the buffer.
@@ -45,7 +55,7 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @param byteArray [ByteArray]
      * @since 2.0.0
      */
-    fun update(byteArray: ByteArray) = digestor.digest(byteArray)
+    fun update(byteArray: ByteArray) = currentStream.write(byteArray)
 
     /**
      * Copies a part of an array of bytes into the buffer.
@@ -55,7 +65,7 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @param length The number of bytes to copy.
      * @since 2.0.0
      */
-    fun update(byteArray: ByteArray, offset: Int, length: Int) = digestor.digest(byteArray, offset, length)
+    fun update(byteArray: ByteArray, offset: Int, length: Int) = currentStream.write(byteArray, offset, length)
 
     /**
      * Permutes over the buffer.
@@ -66,9 +76,9 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun digest(): ByteArray {
-        digestor.digest(addLast())
-        
-        return computeDigest(digestor.extractChunksAndReset())
+        currentStream.write(addLast())
+
+        return currentStream.close().nextBytes(outputLength).also { inputStream = null }
     }
 
     /**
@@ -81,10 +91,10 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun digest(byte: Byte): ByteArray {
-        digestor.digestSingle(byte)
-        digestor.digest(addLast())
+        currentStream.write(byte)
+        currentStream.write(addLast())
 
-        return computeDigest(digestor.extractChunksAndReset())
+        return currentStream.close().nextBytes(outputLength).also { inputStream = null }
     }
 
     /**
@@ -97,10 +107,10 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun digest(byteArray: ByteArray): ByteArray {
-        digestor.digest(byteArray)
-        digestor.digest(addLast())
+        currentStream.write(byteArray)
+        currentStream.write(addLast())
 
-        return computeDigest(digestor.extractChunksAndReset())
+        return currentStream.close().nextBytes(outputLength).also { inputStream = null }
     }
 
     /**
@@ -115,10 +125,10 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun digest(byteArray: ByteArray, offset: Int, length: Int): ByteArray {
-        digestor.digest(byteArray, offset, length)
-        digestor.digest(addLast())
+        currentStream.write(byteArray, offset, length)
+        currentStream.write(addLast())
 
-        return computeDigest(digestor.extractChunksAndReset())
+        return currentStream.close().nextBytes(outputLength).also { inputStream = null }
     }
 
     /**
@@ -130,9 +140,9 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun stream(): HashOutputStream {
-        digestor.digest(addLast())
+        currentStream.write(addLast())
 
-        return computeAsHashStream(digestor.extractChunksAndReset())
+        return currentStream.close().also { inputStream = null }
     }
 
     /**
@@ -145,10 +155,10 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun stream(byte: Byte): HashOutputStream {
-        digestor.digestSingle(byte)
-        digestor.digest(addLast())
+        currentStream.write(byte)
+        currentStream.write(addLast())
 
-        return computeAsHashStream(digestor.extractChunksAndReset())
+        return currentStream.close().also { inputStream = null }
     }
 
     /**
@@ -161,10 +171,10 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun stream(byteArray: ByteArray): HashOutputStream {
-        digestor.digest(byteArray)
-        digestor.digest(addLast())
+        currentStream.write(byteArray)
+        currentStream.write(addLast())
 
-        return computeAsHashStream(digestor.extractChunksAndReset())
+        return currentStream.close().also { inputStream = null }
     }
 
     /**
@@ -179,15 +189,13 @@ abstract class AbstractKeccakFunction internal constructor(initialCapacity: Int)
      * @since 2.0.0
      */
     fun stream(byteArray: ByteArray, offset: Int, length: Int): HashOutputStream {
-        digestor.digest(byteArray, offset, length)
-        digestor.digest(addLast())
+        currentStream.write(byteArray, offset, length)
+        currentStream.write(addLast())
 
-        return computeAsHashStream(digestor.extractChunksAndReset())
+        return currentStream.close().also { inputStream = null }
     }
 
-    internal fun skipToNextChunk() = digestor.skipToNextChunk()
-
-    protected abstract fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray
-    protected abstract fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream
+    internal fun skipToNextChunk() = currentStream.forcePermute()
+    internal abstract fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream
     protected open fun addLast(): ByteArray = ByteArray(0)
 }

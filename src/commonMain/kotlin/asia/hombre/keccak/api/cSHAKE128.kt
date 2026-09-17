@@ -18,12 +18,11 @@
 
 package asia.hombre.keccak.api
 
-import asia.hombre.keccak.internal.FlexiByte
-import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
+import asia.hombre.keccak.internal.FlexiByte
+import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.streams.HashInputStream
-import asia.hombre.keccak.streams.HashOutputStream
 import kotlin.jvm.JvmName
 
 /**
@@ -37,7 +36,7 @@ class cSHAKE128(
     /**
      * The number of bytes to output on `digest()` or `stream()`.
      */
-    val outputLength: Int = PARAMETER.minLength / 8,
+    override val outputLength: Int = PARAMETER.minLength / 8,
     /**
      * Function name customization. This acts like a salt.
      */
@@ -45,27 +44,10 @@ class cSHAKE128(
     /**
      * Generic customization. This acts like a salt.
      */
-    val customization: ByteArray = ByteArray(0)): AbstractKeccakFunction(PARAMETER.BYTERATE) {
-    override val parameter: KeccakParameter = PARAMETER
-
-    private val suffix: FlexiByte
-
-    init {
-        if(functionName.size + customization.size != 0) {
-            addCSHAKEPrePadding(functionName, customization)
-            suffix = parameter.SUFFIX
-        } else {
-            suffix = KeccakParameter.SHAKE_128.SUFFIX
-        }
-    }
-
-    override fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray =
-        KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, suffix)
-            .also { addCSHAKEPrePadding(functionName, customization) }
-
-    override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, suffix, chunks, outputLength)
-            .also { addCSHAKEPrePadding(functionName, customization) }
+    val customization: ByteArray = ByteArray(0)
+): AbstractKeccakFunction(PARAMETER.BYTERATE, PARAMETER, outputLength) {
+    override fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream =
+        newGhostedInputStream(functionName, customization, ghostArena)
 
     companion object {
         @get:JvmName("getParameter")
@@ -81,7 +63,15 @@ class cSHAKE128(
          */
         fun newInputStream(
             functionName: ByteArray = ByteArray(0),
-            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER) {
+            customization: ByteArray = ByteArray(0)
+        ): HashInputStream =
+            newGhostedInputStream(functionName, customization, KeccakMath.GhostArena())
+
+        internal fun newGhostedInputStream(
+            functionName: ByteArray,
+            customization: ByteArray,
+            ghost: KeccakMath.GhostArena
+        ): HashInputStream = object : HashInputStream(PARAMETER, ghost = ghost) {
             override val SUFFIX: FlexiByte
                 get() =
                     if(functionName.size + customization.size != 0)

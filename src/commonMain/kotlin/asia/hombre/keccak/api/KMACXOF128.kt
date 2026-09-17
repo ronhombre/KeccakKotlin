@@ -19,11 +19,10 @@
 package asia.hombre.keccak.api
 
 import asia.hombre.keccak.KeccakConstants
-import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
+import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.streams.HashInputStream
-import asia.hombre.keccak.streams.HashOutputStream
 import kotlin.jvm.JvmName
 
 /**
@@ -45,27 +44,14 @@ class KMACXOF128(
      *
      * This produces an extendable hash so different lengths will produce the same output.
      */
-    val outputLength: Int = PARAMETER.minLength / 8,
+    override val outputLength: Int = PARAMETER.minLength / 8,
     /**
      * Generic customization. This acts like a salt.
      */
-    val customization: ByteArray = ByteArray(0)): AbstractKeccakFunction(PARAMETER.BYTERATE) {
-    override val parameter: KeccakParameter = PARAMETER
-
-    init {
-        addKMACPrePadding(key, customization)
-    }
-
-    override fun addLast(): ByteArray = KeccakConstants.KMACXOF_RIGHT_ENCODED
-
-    override fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray =
-        KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, parameter.SUFFIX)
-            .also { addKMACPrePadding(key, customization) }
-
-    override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, outputLength)
-            .also { addKMACPrePadding(key, customization) }
-
+    val customization: ByteArray = ByteArray(0)
+): AbstractKeccakFunction(PARAMETER.BYTERATE, PARAMETER, outputLength) {
+    override fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream =
+        newGhostedInputStream(key, customization, ghostArena)
     companion object {
         @get:JvmName("getParameter")
         val PARAMETER = KeccakParameter.KMACXOF_128
@@ -81,7 +67,15 @@ class KMACXOF128(
          */
         fun newInputStream(
             key: ByteArray,
-            customization: ByteArray = ByteArray(0)): HashInputStream = object : HashInputStream(PARAMETER) {
+            customization: ByteArray = ByteArray(0)
+        ): HashInputStream =
+            newGhostedInputStream(key, customization, KeccakMath.GhostArena())
+
+        internal fun newGhostedInputStream(
+            key: ByteArray,
+            customization: ByteArray,
+            ghost: KeccakMath.GhostArena
+        ): HashInputStream = object : HashInputStream(PARAMETER, ghost = ghost) {
             init {
                 addKMACPrePadding(key, customization)
             }

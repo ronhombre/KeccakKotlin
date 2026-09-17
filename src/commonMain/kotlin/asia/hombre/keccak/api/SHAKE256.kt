@@ -18,11 +18,10 @@
 
 package asia.hombre.keccak.api
 
-import asia.hombre.keccak.KeccakHash
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
+import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.streams.HashInputStream
-import asia.hombre.keccak.streams.HashOutputStream
 import kotlin.jvm.JvmName
 
 /**
@@ -35,14 +34,10 @@ class SHAKE256(
     /**
      * The number of bytes to output on `digest()` or `stream()`.
      */
-    val outputLength: Int = PARAMETER.minLength / 8): AbstractKeccakFunction(PARAMETER.BYTERATE) {
-    override val parameter: KeccakParameter = PARAMETER
-
-    override fun computeDigest(chunks: Pair<Array<ByteArray>, Int>): ByteArray =
-        KeccakHash.generateDirectOutput(PARAMETER, outputLength, chunks, parameter.SUFFIX)
-
-    override fun computeAsHashStream(chunks: Pair<Array<ByteArray>, Int>): HashOutputStream =
-        HashOutputStream(parameter, PARAMETER.SUFFIX, chunks, outputLength)
+    override val outputLength: Int = PARAMETER.minLength / 8
+): AbstractKeccakFunction(PARAMETER.BYTERATE, PARAMETER, outputLength) {
+    override fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream =
+        newGhostedInputStream(ghostArena)
 
     companion object {
         @get:JvmName("getParameter")
@@ -54,6 +49,8 @@ class SHAKE256(
          * @return [HashInputStream]
          * @since 2.0.0
          */
-        fun newInputStream(): HashInputStream = object : HashInputStream(PARAMETER) {}
+        fun newInputStream(): HashInputStream = newGhostedInputStream(KeccakMath.GhostArena())
+
+        internal fun newGhostedInputStream(ghost: KeccakMath.GhostArena): HashInputStream = object : HashInputStream(PARAMETER, ghost = ghost) {}
     }
 }
