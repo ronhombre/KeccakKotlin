@@ -2,7 +2,7 @@ name: "Linux Test X64 master"
 
 on:
   release:
-    types: [prereleased]
+    types: [published]
   workflow_dispatch:
 
 jobs:

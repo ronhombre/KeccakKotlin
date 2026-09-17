@@ -2,7 +2,7 @@ name: "iOS Test ARM master"
 
 on:
   release:
-    types: [prereleased]
+    types: [published]
   workflow_dispatch:
 
 jobs:
