@@ -188,24 +188,23 @@ internal object KeccakMath {
     }
 
     @JvmSynthetic
-    fun directMatrixToBytes(matrix: LongArray, destination: SplitByteArray) {
-        require(matrix.size == 25)         { "Matrix too small" } //JVM JIT guarantee
-        require(destination.size == 200)   { "Out of bounds" } //JVM JIT guarantee
+    fun directMatrixToBytes(matrix: LongArray, destination: ByteArray) {
+        require(matrix.size == 25) { "Matrix too small" } //JVM JIT guarantee
 
-        var offset = 0
-        for (y in 0..<5) {
-            for (x in 0..<5) {
-                val v = matrix[5 * x + y]
-                destination[offset]     =  v.toByte()
-                destination[offset + 1] = (v ushr 8).toByte()
-                destination[offset + 2] = (v ushr 16).toByte()
-                destination[offset + 3] = (v ushr 24).toByte()
-                destination[offset + 4] = (v ushr 32).toByte()
-                destination[offset + 5] = (v ushr 40).toByte()
-                destination[offset + 6] = (v ushr 48).toByte()
-                destination[offset + 7] = (v ushr 56).toByte()
-                offset += 8
-            }
+        var idx = 0
+        for (offset in destination.indices step 8) {
+            val v = matrix[idx]
+            destination[offset]     =  v.toByte()
+            destination[offset + 1] = (v ushr 8).toByte()
+            destination[offset + 2] = (v ushr 16).toByte()
+            destination[offset + 3] = (v ushr 24).toByte()
+            destination[offset + 4] = (v ushr 32).toByte()
+            destination[offset + 5] = (v ushr 40).toByte()
+            destination[offset + 6] = (v ushr 48).toByte()
+            destination[offset + 7] = (v ushr 56).toByte()
+
+            idx += 5
+            if (idx >= 25) idx -= 24
         }
     }
 

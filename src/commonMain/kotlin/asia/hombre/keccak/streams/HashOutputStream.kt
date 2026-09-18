@@ -21,7 +21,6 @@ package asia.hombre.keccak.streams
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.KeccakMath
-import asia.hombre.keccak.internal.SplitByteArray
 import kotlin.jvm.JvmName
 import kotlin.math.min
 
@@ -40,7 +39,7 @@ class HashOutputStream {
     val PARAMETER: KeccakParameter
 
     private val state: LongArray
-    private val stateBuffer: SplitByteArray
+    private val stateBuffer: ByteArray
     private var ghost: KeccakMath.GhostArena
     private var used = 0
     private val squeezable: Boolean
@@ -65,7 +64,7 @@ class HashOutputStream {
      *
      * DO NOT MAKE THIS PUBLIC.
      */
-    internal constructor(parameter: KeccakParameter, completedState: LongArray, buffer: SplitByteArray, ghost: KeccakMath.GhostArena, maxOutputLength: Int = parameter.maxLength / 8) {
+    internal constructor(parameter: KeccakParameter, completedState: LongArray, buffer: ByteArray, ghost: KeccakMath.GhostArena, maxOutputLength: Int = parameter.maxLength / 8) {
         PARAMETER = parameter
 
         //Commented out since it's redundant given this is an internal part.
@@ -90,7 +89,7 @@ class HashOutputStream {
      */
     private fun trySqueeze() {
         if(!hasNext()) throw IllegalArgumentException("This parameter $PARAMETER only supports a total output of $maxOutputLength bytes. This is not an extendable function.")
-        if(used < stateBuffer.a.size) return
+        if(used < stateBuffer.size) return
 
         KeccakMath.directPermute(state, ghost)
         KeccakMath.directMatrixToBytes(state, stateBuffer)
@@ -104,9 +103,9 @@ class HashOutputStream {
     private fun getAsManyBytes(destination: ByteArray, offset: Int): Int {
         trySqueeze()
 
-        val asMuch = min(stateBuffer.a.size - used, destination.size - offset)
+        val asMuch = min(stateBuffer.size - used, destination.size - offset)
 
-        stateBuffer.a
+        stateBuffer
             .copyInto(destination, offset, used, used + asMuch)
             .also { used += asMuch; totalOutputLength += asMuch }
 
@@ -121,7 +120,7 @@ class HashOutputStream {
     fun nextByte(): Byte {
         trySqueeze()
 
-        return stateBuffer.a[used++].also { totalOutputLength++ }
+        return stateBuffer[used++].also { totalOutputLength++ }
     }
 
     /**

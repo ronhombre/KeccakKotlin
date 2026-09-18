@@ -22,7 +22,6 @@ import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.internal.KeccakMath
-import asia.hombre.keccak.internal.SplitByteArray
 import kotlin.jvm.JvmName
 import kotlin.jvm.JvmSynthetic
 import kotlin.math.min
@@ -44,9 +43,7 @@ open class HashInputStream internal constructor(
     private var ghost: KeccakMath.GhostArena = KeccakMath.GhostArena()
 ) {
     private val incompleteState = LongArray(25)
-    private val buffer = SplitByteArray(ByteArray(PARAMETER.BYTERATE), ByteArray(200 - PARAMETER.BYTERATE))
-    private val inputBuffer
-        get() = buffer.a
+    private val buffer = ByteArray(PARAMETER.BYTERATE)
 
     /**
      * The suffix for this instance used as input for the algorithm.
@@ -58,7 +55,7 @@ open class HashInputStream internal constructor(
     private var inputPos = 0
 
     internal fun forcePermute() {
-        inputPos = inputBuffer.size
+        inputPos = buffer.size
         tryPermute()
     }
 
@@ -66,19 +63,19 @@ open class HashInputStream internal constructor(
      * Permutes if there are no more usable bytes.
      */
     private fun tryPermute() {
-        if(inputPos < inputBuffer.size) return
+        if(inputPos < buffer.size) return
         var i: Int
 
         for(x in 0..<5) {
             for(y in 0..<5) {
                 i = 5 * x + y
-                incompleteState[i] = incompleteState[i] xor KeccakMath.getLongAt(buffer.a, x, y)
+                incompleteState[i] = incompleteState[i] xor KeccakMath.getLongAt(buffer, x, y)
             }
         }
 
         KeccakMath.directPermute(incompleteState, ghost)
 
-        inputBuffer.fill(0)
+        buffer.fill(0)
         inputPos = 0
     }
 
@@ -90,8 +87,8 @@ open class HashInputStream internal constructor(
         val endIndex = offset + length
 
         while(inputIndex < endIndex) {
-            val bytesToDigest = min(endIndex - inputIndex, inputBuffer.size - inputPos)
-            bytes.copyInto(inputBuffer, inputPos, inputIndex, inputIndex + bytesToDigest)
+            val bytesToDigest = min(endIndex - inputIndex, buffer.size - inputPos)
+            bytes.copyInto(buffer, inputPos, inputIndex, inputIndex + bytesToDigest)
             inputPos += bytesToDigest
             inputIndex += bytesToDigest
 
@@ -229,12 +226,10 @@ open class HashInputStream internal constructor(
 
         beforeClose()
 
-        KeccakMath.pad10n1Direct(inputBuffer, inputPos, SUFFIX)
-        inputPos = inputBuffer.size
+        KeccakMath.pad10n1Direct(buffer, inputPos, SUFFIX)
+        inputPos = buffer.size
 
         tryPermute()
-
-        buffer.b.fill(0)
 
         return HashOutputStream(PARAMETER, incompleteState, buffer, ghost, maxOutputLength)
     }
