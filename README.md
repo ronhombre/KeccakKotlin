@@ -19,7 +19,7 @@ This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
 > [!NOTE]
-> 2.4.0 features another round of optimizations! When profiled with KyberKotlin's JVMBenchmark, the memory allocations
+> 2.5.0 features another round of optimizations! When profiled with KyberKotlin's JVMBenchmark, the memory allocations
 > started from 52.19GB and dropped to 38.17GB. That's a 26.86% reduction!
 
 > [!NOTE]
@@ -27,10 +27,7 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 > iosSimulatorArm64 as well as Kotlin 2.4.20 and Gradle 9.7.1.
 
 > [!WARNING]
-> 2.4.0 broke binary compatibility with Java <21. 2.5.0 restores compatibility to Java 8.
-
-> [!WARNING]
-> 2.2.0 was skipped! This is due to an error in the maven publishing.
+> 2.3.0 and 2.4.0-alpha broke binary compatibility with Java <21. 2.5.0 restores compatibility to Java 8.
 
 ## Capabilities (NIST FIPS 202)
 * SHA3-224 (Byte Stream-able)
