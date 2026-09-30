@@ -1,8 +1,8 @@
 name: "Publish To Maven"
 
 on:
-  release:
-    types: [released]
+  #release:
+  #  types: [released]
 
 jobs:
   build-and-stage:
@@ -112,4 +112,4 @@ jobs:
           SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
         run: |
           chmod +x gradlew
-          ./gradlew :publishAllToMavenCentral
+          ./gradlew :publishAllSingleToMavenCentral

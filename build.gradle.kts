@@ -1,4 +1,5 @@
 import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 
 plugins {
@@ -9,7 +10,7 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "2.4.0"
+version = "2.5.0"
 description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
@@ -23,7 +24,17 @@ repositories {
 }
 
 kotlin {
-    jvm()
+    jvm {
+        compilations.getByName("main") {
+            compileTaskProvider.configure {
+                //Set up the Kotlin compiler options for the 'main' compilation:
+                compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
+            }
+
+            compileTaskProvider //Get the Kotlin task 'compileKotlinJvm'
+            output //Get the main compilation output
+        }
+    }
     js {
         nodejs()
         browser {
@@ -44,6 +55,7 @@ kotlin {
         getByName("commonTest") {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test")
+                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
             }
         }
     }
@@ -110,24 +122,61 @@ val bundleAllTask = tasks.register("bundleAll") {
     //dependsOn("publish")
 }
 
+val bundleAllSingleTask = tasks.register<Zip>("bundleAllSingle") {
+    description = "Bundles all the buildable Maven Artifacts into a single package"
+    group = "Bundle"
+    dependsOn("publishAllPublicationsToMavenRepository")
+    from(mavenDir)
+    destinationDirectory.set(mavenDir)
+    archiveFileName.set(projectName + "-" + project.version + "-singlebundle.zip")
+}
+
 val publishAllTask = tasks.register("publishAllToMavenCentral") {
     description = "Publishes and bundles all the buildable Maven Artifacts"
     group = "Publish"
     dependsOn("bundleAll")
 }
 
+val publishAllSingleTask = tasks.register<Exec>("publishAllSingleToMavenCentral") {
+    description = "Publish the Maven Artifact to Maven Central"
+    dependsOn(bundleAllSingleTask)
+    mustRunAfter(bundleAllSingleTask)
+    group = "Publish"
+
+    commandLine(
+        "curl", "-X", "POST",
+        "https://central.sonatype.com/api/v1/publisher/upload?name=$projectName&publishingType=" + if(isAutomated) "AUTOMATED" else "USER_MANAGED",
+        "-H", "accept: text/plain",
+        "-H", "Content-Type: multipart/form-data",
+        "-H", "Authorization: Bearer " + System.getenv("SONATYPE_TOKEN"),
+        "-F", "bundle=@${bundleAllSingleTask.get().archiveFileName.get()};type=application/x-zip-compressed"
+    )
+    workingDir(mavenDir)
+
+    val stdOut = ByteArrayOutputStream()
+    val errOut = ByteArrayOutputStream()
+    standardOutput = stdOut
+    errorOutput = errOut
+
+    doLast {
+        println(stdOut.toString())
+        println(errOut.toString())
+    }
+}
+
+// Most of these will be deprecated and removed in the future while the new pipeline undergoes field-testing.
 gradle.projectsEvaluated {
     publishing.publications.withType<MavenPublication>().configureEach {
         artifactId = projectName + if (artifactId.contains("-")) "-" + artifactId.split("-").last() else ""
         val artifact = this
+        val mavenDeepDir = artifact.groupId.replace(".", "/") + "/" + artifact.artifactId
         val pubNameCap = artifact.name.replaceFirstChar { it.uppercase() }
         val bundleFileName = parseArtifactArchiveName(artifact.artifactId, artifact.version)
         val bundleTask = tasks.register<Zip>("bundle$pubNameCap") {
             description = "Bundles the Maven Artifact"
             group = "Bundle"
             from(mavenDir)
-            val mavenDeepDir = artifact.groupId.replace(".", "/") + "/" + artifact.artifactId
-            include("$mavenDeepDir/*/*")
+            include("$mavenDeepDir/**")
             destinationDirectory.set(mavenDir)
             archiveFileName.set(bundleFileName)
         }
@@ -160,6 +209,7 @@ gradle.projectsEvaluated {
 
         // Attach dynamic tasks to root tasks
         bundleAllTask.configure { dependsOn(bundleTask) }
+        bundleAllSingleTask.configure { include("$mavenDeepDir/**") }
         publishAllTask.configure { dependsOn(publishTask) }
     }
 }

@@ -1,4 +1,4 @@
-# KeccakKotlin (2.4.0)
+# KeccakKotlin (2.5.0)
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -25,6 +25,9 @@ This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-K
 > [!NOTE]
 > 2.3.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and
 > iosSimulatorArm64 as well as Kotlin 2.4.20 and Gradle 9.7.1.
+
+> [!WARNING]
+> 2.4.0 broke binary compatibility with Java <21. 2.5.0 restores compatibility to Java 8.
 
 > [!WARNING]
 > 2.2.0 was skipped! This is due to an error in the maven publishing.
@@ -82,9 +85,11 @@ ParallelHash Functions might need to add coroutine as a dependency.
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:2.4.0")
+    implementation("asia.hombre:keccak:2.5.0")
 }
 ```
+
+See more installation instructions [here](https://central.sonatype.com/artifact/asia.hombre/keccak).
 
 ## Usage
 ```kotlin
