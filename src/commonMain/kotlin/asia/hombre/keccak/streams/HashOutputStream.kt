@@ -160,18 +160,27 @@ class HashOutputStream {
      * Copies bytes from the hash stream into a part of the byte array.
      *
      * @param destination [ByteArray]
-     * @param length The number of bytes to copy starting from the offset
-     * @param offset The offset from the start of the destination byte array
+     * @param endIndex The end of the index to copy into.
+     * @param startIndex The start of the index to copy into.
      * @since 2.0.0
      */
-    fun nextBytes(destination: ByteArray, length: Int, offset: Int) {
-        if(!squeezable && totalOutputLength + length > maxOutputLength) throw IllegalArgumentException("This parameter $PARAMETER only supports a total output of $maxOutputLength bytes. This is not an extendable function.")
+    fun nextBytes(destination: ByteArray, endIndex: Int, startIndex: Int) {
+        if(!squeezable && totalOutputLength + endIndex > maxOutputLength) throw IllegalArgumentException("This parameter $PARAMETER only supports a total output of $maxOutputLength bytes. This is not an extendable function.")
 
-        var offset = offset
-        while(offset < length) {
+        var offset = startIndex
+        while(offset < endIndex) {
             offset = getAsManyBytes(destination, offset)
         }
     }
+
+    /**
+     * Copies bytes from the hash stream into a part of the byte array.
+     *
+     * @param length The number of bytes to copy starting from the offset
+     * @param offset The offset from the start of the destination byte array
+     * @since 2.5.1
+    */
+    fun nextBytesOffset(destination: ByteArray, length: Int, offset: Int) = nextBytes(destination, offset + length, offset)
 
     /**
      * Returns a [Short] made up of *two* bytes from the hash stream.
