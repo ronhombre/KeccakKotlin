@@ -1,4 +1,4 @@
-# KeccakKotlin (2.5.0)
+# KeccakKotlin
 ## _Implements SHA-3 Hash Functions_
 _**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
@@ -19,15 +19,15 @@ This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
 
 > [!NOTE]
-> 2.5.0 features another round of optimizations! When profiled with KyberKotlin's JVMBenchmark, the memory allocations
-> started from 52.19GB and dropped to 38.17GB. That's a 26.86% reduction!
-
-> [!NOTE]
 > 2.3.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and
 > iosSimulatorArm64 as well as Kotlin 2.4.20 and Gradle 9.7.1.
 
 > [!WARNING]
 > 2.3.0 and 2.4.0-alpha broke binary compatibility with Java <21. 2.5.0 restores compatibility to Java 8.
+
+### Performance improvements per version (profiled with KyberKotlin's JVMBenchmark):
+- 2.5.0 to 2.5.1 = 11.65% memory allocation reduction.
+- 2.1.1/2.3.0 to 2.5.0 = 26.86% memory allocation reduction.
 
 ## Capabilities (NIST FIPS 202)
 * SHA3-224 (Byte Stream-able)
@@ -82,9 +82,11 @@ ParallelHash Functions might need to add coroutine as a dependency.
 Maven/Gradle
 ```kotlin
 dependencies {
-    implementation("asia.hombre:keccak:2.5.0")
+    implementation("asia.hombre:keccak:<version>") // asia.hombre:keccak:2.5.1
 }
 ```
+
+Please see the [releases](https://github.com/ronhombre/KeccakKotlin/releases) for the latest version.
 
 See more installation instructions [here](https://central.sonatype.com/artifact/asia.hombre/keccak).
 
