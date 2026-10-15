@@ -33,8 +33,9 @@ internal object KeccakMath {
      * THIS SECTION CONTAINS A SET OF FAST AND EFFICIENT ALGORITHMS TO MINIMIZE MEMORY COPYING.
      */
 
+    @Suppress("NOTHING_TO_INLINE")
     @JvmSynthetic
-    fun pad10n1Direct(bytes: ByteArray, offset: Int, flexiByte: FlexiByte) {
+    inline fun pad10n1Direct(bytes: ByteArray, offset: Int, flexiByte: FlexiByte) {
         bytes[offset] = flexiByte.toByte() or (0b1 shl (flexiByte.bitIndex + 1)).toByte()
         bytes[bytes.lastIndex] = bytes[bytes.lastIndex] or (-128).toByte()
     }
@@ -129,8 +130,9 @@ internal object KeccakMath {
         }
     }
 
+    @Suppress("NOTHING_TO_INLINE")
     @JvmSynthetic
-    fun getLongAt(source: ByteArray, x: Int, y: Int): Long {
+    inline fun getLongAt(source: ByteArray, x: Int, y: Int): Long {
         val offset = (x + (5 * y)) shl 3
 
         if(offset + 8 > source.size) return 0
@@ -170,26 +172,21 @@ internal object KeccakMath {
      * THIS SECTION CONTAINS EXTENDED FUNCTIONS USED FOR SP 800-185. NOT ALL OF THESE FUNCTIONS ARE DESCRIBED IN THE
      * SPECIAL PUBLICATION AS THEY ARE MADE BY THE AUTHOR OF THIS CODE.
      */
-
     @JvmSynthetic
-    fun computeForNGivenX(x: Long): Byte = (((64 - (x ushr 1).countLeadingZeroBits()) ushr 3) + 1).toByte()
+    fun encodeToBytes(number: Long, appendOrPrepend: Boolean): ByteArray {
+        val size = 8 - ((number or 1L).countLeadingZeroBits() shr 3)
+        val n = (((64 - (number ushr 1).countLeadingZeroBits()) ushr 3) + 1).toByte()
+        val bytes = ByteArray(size + 1)
 
-    @JvmSynthetic
-    fun encodeToBytes(number: Long, min: Int = 0): ByteArray =
-        longToBytes(number)
-            .copyOfRange(8 - max((Long.SIZE_BITS - number.countLeadingZeroBits() + 7) shr 3, min), 8)
+        val offset = if (appendOrPrepend) 1 else 0
+        bytes[if (appendOrPrepend) 0 else size] = n
 
-    /**
-     * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
-     *
-     * This validity condition is outlined in SP 800-185.
-     *
-     * Although in reality, reaching this value is unrealistic since we are limited to 2^64 with Long and before that
-     * with 2^32 with Int, which is the unit for the size of byte arrays.
-     */
-    @JvmSynthetic
-    fun leftEncode(x: Long): ByteArray {
-        return byteArrayOf(computeForNGivenX(x), *encodeToBytes(x, 1))
+        var temp = number
+        for (i in (size - 1 + offset) downTo offset) {
+            bytes[i] = temp.toByte()
+            temp = temp ushr 8
+        }
+        return bytes
     }
 
     /**
@@ -201,7 +198,16 @@ internal object KeccakMath {
      * with 2^32 with Int, which is the unit for the size of byte arrays.
      */
     @JvmSynthetic
-    fun rightEncode(x: Long): ByteArray {
-        return byteArrayOf(*encodeToBytes(x, 1), computeForNGivenX(x))
-    }
+    fun leftEncode(x: Long): ByteArray = encodeToBytes(x, true)
+
+    /**
+     * Valid only for 0 <= x < 2^2040 because we only use 1 byte to encode n. (2^2040 = 2^(8 * 255))
+     *
+     * This validity condition is outlined in SP 800-185.
+     *
+     * Although in reality, reaching this value is unrealistic since we are limited to 2^64 with Long and before that
+     * with 2^32 with Int, which is the unit for the size of byte arrays.
+     */
+    @JvmSynthetic
+    fun rightEncode(x: Long): ByteArray = encodeToBytes(x, false)
 }
