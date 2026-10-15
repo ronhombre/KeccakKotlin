@@ -30,6 +30,8 @@ unsafe extern "C" {
 // Precompiled compiler_builtins can retain an unwind-personality reference even
 // when this crate uses panic=abort. Provide it for the no_std static archive;
 // any attempted unwinding terminates rather than crossing into Kotlin.
+// Before C interop embeds the archive, Gradle weakens this fallback on ELF/Mach-O
+// or renames it and its references to keccakrust_eh_personality on Windows COFF.
 #[cfg(not(test))]
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality() -> ! {

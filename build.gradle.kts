@@ -138,10 +138,22 @@ rust {
         val outputName = rust.name.get().lowercase().replace("-", "")
         val ffiTargetDirectory = rust.targetDirectory.dir(name)
         val ffiLibrary = ffiTargetDirectory.map { it.file("$rustTarget/release/lib$outputName.a") }
-        val interopLibrary = if (name == "androidNativeArm32") {
-            ffiTargetDirectory.map { it.file("$rustTarget/release/lib$outputName-compat.a") }
-        } else {
-            ffiLibrary
+        val interopLibrary = layout.buildDirectory.file("ffi/$rustTarget/lib$outputName.a")
+        val symbolOptions = buildList {
+            when {
+                name == "mingwX64" -> {
+                    // llvm-objcopy cannot weaken COFF symbols. Rename both the
+                    // definition and its references to avoid Rust runtime collisions.
+                    add("--redefine-sym=rust_eh_personality=keccakrust_eh_personality")
+                }
+                rustTarget.contains("apple") -> add("--weaken-symbol=_rust_eh_personality")
+                else -> add("--weaken-symbol=rust_eh_personality")
+            }
+            if (name == "androidNativeArm32") {
+                // The old NDK libgcc also supplies these atomic helpers.
+                add("--wildcard")
+                add("--weaken-symbol=__sync_*")
+            }
         }
 
         val buildFFI = tasks.register<CargoBuild>("buildFFI${name.replaceFirstChar { it.uppercase() }}") {
@@ -159,28 +171,27 @@ rust {
             release = true
         }
 
-        val prepareFFI = if (name == "androidNativeArm32") {
-            tasks.register<Exec>("prepareKeccakRust${name.replaceFirstChar { it.uppercase() }}") {
-                description = "Resolve Rust/GCC atomic helper overlap for Android Arm32"
-                group = "build"
-                dependsOn(buildFFI)
-                onlyIf("Kotlin/Native supports C interop for this target on the current host") {
-                    canBuildOnCurrentHost
-                }
-                inputs.file(ffiLibrary)
-                outputs.file(interopLibrary)
-                // The old NDK libgcc and Rust compiler_builtins both define __sync_* helpers.
-                // Keep the Rust definitions as weak fallbacks for the platform runtime.
-                commandLine(
-                    providers.gradleProperty("keccak.llvmObjcopy").orElse("llvm-objcopy").get(),
-                    "--wildcard", "--weaken-symbol=__sync_*",
+        val prepareFFI = tasks.register<Exec>("prepareFFI${name.replaceFirstChar { it.uppercase() }}") {
+            description = "Prepare the FFI to coexist with other Rust runtimes for $rustTarget"
+            group = "build"
+            dependsOn(buildFFI)
+            onlyIf("Kotlin/Native supports C interop for this target on the current host") {
+                canBuildOnCurrentHost
+            }
+            val llvmObjcopy = providers.gradleProperty("keccak.llvmObjcopy").orElse("llvm-objcopy")
+
+            inputs.file(ffiLibrary)
+            inputs.property("llvmObjcopy", llvmObjcopy)
+            inputs.property("symbolOptions", symbolOptions)
+            outputs.file(interopLibrary)
+
+            commandLine(
+                listOf(llvmObjcopy.get()) + symbolOptions + listOf(
                     ffiLibrary.get().asFile.absolutePath,
                     interopLibrary.get().asFile.absolutePath,
                 )
-                doFirst { interopLibrary.get().asFile.parentFile.mkdirs() }
-            }
-        } else {
-            buildFFI
+            )
+            doFirst { interopLibrary.get().asFile.parentFile.mkdirs() }
         }
 
         val rustInterop = compilations.getByName("main").cinterops.create("FFI") {
