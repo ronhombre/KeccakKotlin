@@ -10,14 +10,14 @@ plugins {
 }
 
 group = "asia.hombre"
-version = "2.5.0"
+version = "2.5.1"
 description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
 
 val mavenDir = projectDir.resolve("maven")
 
-val isAutomated = false
+val isAutomated = System.getenv("PUBLISH_AUTO") == "true"
 
 repositories {
     mavenCentral()
@@ -106,22 +106,6 @@ publishing {
     }
 }
 
-fun parseArtifactId(artifactId: String): String {
-    val list = artifactId.splitToSequence("-").map { it.replaceFirstChar(Char::uppercase) }
-
-    return list.joinToString("")
-}
-
-fun parseArtifactArchiveName(artifactName: String, version: String): String {
-    return "$artifactName-$version-bundle.zip"
-}
-
-val bundleAllTask = tasks.register("bundleAll") {
-    description = "Bundles all the buildable Maven Artifacts"
-    group = "Bundle"
-    //dependsOn("publish")
-}
-
 val bundleAllSingleTask = tasks.register<Zip>("bundleAllSingle") {
     description = "Bundles all the buildable Maven Artifacts into a single package"
     group = "Bundle"
@@ -129,12 +113,6 @@ val bundleAllSingleTask = tasks.register<Zip>("bundleAllSingle") {
     from(mavenDir)
     destinationDirectory.set(mavenDir)
     archiveFileName.set(projectName + "-" + project.version + "-singlebundle.zip")
-}
-
-val publishAllTask = tasks.register("publishAllToMavenCentral") {
-    description = "Publishes and bundles all the buildable Maven Artifacts"
-    group = "Publish"
-    dependsOn("bundleAll")
 }
 
 val publishAllSingleTask = tasks.register<Exec>("publishAllSingleToMavenCentral") {
@@ -170,47 +148,8 @@ gradle.projectsEvaluated {
         artifactId = projectName + if (artifactId.contains("-")) "-" + artifactId.split("-").last() else ""
         val artifact = this
         val mavenDeepDir = artifact.groupId.replace(".", "/") + "/" + artifact.artifactId
-        val pubNameCap = artifact.name.replaceFirstChar { it.uppercase() }
-        val bundleFileName = parseArtifactArchiveName(artifact.artifactId, artifact.version)
-        val bundleTask = tasks.register<Zip>("bundle$pubNameCap") {
-            description = "Bundles the Maven Artifact"
-            group = "Bundle"
-            from(mavenDir)
-            include("$mavenDeepDir/**")
-            destinationDirectory.set(mavenDir)
-            archiveFileName.set(bundleFileName)
-        }
-
-        val publishTask = tasks.register<Exec>("publish${pubNameCap}ToMavenCentral") {
-            description = "Publish the Maven Artifact to Maven Central"
-            mustRunAfter(bundleTask)
-            group = "Publish"
-
-            commandLine(
-                "curl", "-X", "POST",
-                "https://central.sonatype.com/api/v1/publisher/upload?name=${artifact.artifactId}&publishingType=" + if(isAutomated) "AUTOMATED" else "USER_MANAGED",
-                "-H", "accept: text/plain",
-                "-H", "Content-Type: multipart/form-data",
-                "-H", "Authorization: Bearer " + System.getenv("SONATYPE_TOKEN"),
-                "-F", "bundle=@$bundleFileName;type=application/x-zip-compressed"
-            )
-            workingDir(mavenDir)
-
-            val stdOut = ByteArrayOutputStream()
-            val errOut = ByteArrayOutputStream()
-            standardOutput = stdOut
-            errorOutput = errOut
-
-            doLast {
-                println(stdOut.toString())
-                println(errOut.toString())
-            }
-        }
-
         // Attach dynamic tasks to root tasks
-        bundleAllTask.configure { dependsOn(bundleTask) }
         bundleAllSingleTask.configure { include("$mavenDeepDir/**") }
-        publishAllTask.configure { dependsOn(publishTask) }
     }
 }
 
