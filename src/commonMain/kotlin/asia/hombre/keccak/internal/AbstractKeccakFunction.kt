@@ -35,11 +35,10 @@ abstract class AbstractKeccakFunction internal constructor(
     override val parameter: KeccakParameter,
     open val outputLength: Int
 ): KeccakInstance {
-    private val ghost = KeccakMath.GhostArena()
     private var inputStream: HashInputStream? = null
 
     private val currentStream: HashInputStream
-        get() = inputStream ?: newInputStream(ghost).also { inputStream = it }
+        get() = inputStream ?: newInputStream().also { inputStream = it }
 
     /**
      * Copies a byte into the buffer.
@@ -196,6 +195,6 @@ abstract class AbstractKeccakFunction internal constructor(
     }
 
     internal fun skipToNextChunk() = currentStream.forcePermute()
-    internal abstract fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream
+    internal abstract fun newInputStream(): HashInputStream
     protected open fun addLast(): ByteArray = ByteArray(0)
 }

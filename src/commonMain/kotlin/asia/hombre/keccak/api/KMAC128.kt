@@ -49,8 +49,7 @@ class KMAC128(
      */
     val customization: ByteArray = ByteArray(0)
 ): AbstractKeccakFunction(PARAMETER.BYTERATE, PARAMETER, outputLength) {
-    override fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream =
-        newGhostedInputStream(key, outputLength, customization, ghostArena)
+    override fun newInputStream(): HashInputStream = newInputStream(key, outputLength, customization)
 
     companion object {
         @get:JvmName("getParameter")
@@ -71,14 +70,7 @@ class KMAC128(
             key: ByteArray,
             outputLength: Int = PARAMETER.minLength / 8,
             customization: ByteArray = ByteArray(0)
-        ): HashInputStream = newGhostedInputStream(key, outputLength, customization, KeccakMath.GhostArena())
-
-        internal fun newGhostedInputStream(
-            key: ByteArray,
-            outputLength: Int,
-            customization: ByteArray,
-            ghost: KeccakMath.GhostArena
-        ): HashInputStream = object : HashInputStream(PARAMETER, outputLength, ghost) {
+        ): HashInputStream = object : HashInputStream(PARAMETER, outputLength) {
             init {
                 addKMACPrePadding(key, customization)
             }

@@ -19,7 +19,6 @@
 package asia.hombre.keccak.streams
 
 import asia.hombre.keccak.KeccakParameter
-import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.jvm.JvmName
 import kotlin.math.min
@@ -40,7 +39,6 @@ class HashOutputStream {
 
     private val state: LongArray
     private val stateBuffer: ByteArray
-    private var ghost: KeccakMath.GhostArena
     private var used = 0
     private val squeezable: Boolean
         get() = when(PARAMETER) {
@@ -64,7 +62,7 @@ class HashOutputStream {
      *
      * DO NOT MAKE THIS PUBLIC.
      */
-    internal constructor(parameter: KeccakParameter, completedState: LongArray, buffer: ByteArray, ghost: KeccakMath.GhostArena, maxOutputLength: Int = parameter.maxLength / 8) {
+    internal constructor(parameter: KeccakParameter, completedState: LongArray, buffer: ByteArray, maxOutputLength: Int = parameter.maxLength / 8) {
         PARAMETER = parameter
 
         //Commented out since it's redundant given this is an internal part.
@@ -79,7 +77,6 @@ class HashOutputStream {
 
         this.state = completedState
         this.stateBuffer = buffer
-        this.ghost = ghost
         KeccakMath.directMatrixToBytes(state, stateBuffer)
     }
 
@@ -91,7 +88,7 @@ class HashOutputStream {
         if(!hasNext()) throw IllegalArgumentException("This parameter $PARAMETER only supports a total output of $maxOutputLength bytes. This is not an extendable function.")
         if(used < stateBuffer.size) return
 
-        KeccakMath.directPermute(state, ghost)
+        KeccakMath.directPermute(state)
         KeccakMath.directMatrixToBytes(state, stateBuffer)
 
         used = 0
@@ -252,23 +249,15 @@ class HashOutputStream {
     /**
      * Detaches this stream from its parent's permute scratch arena, giving it its own.
      *
-     * Use this when you intend to hand this stream off to a different thread than the one
-     * that owns the [AbstractKeccakFunction] (or [HashInputStream]) that produced it, while
-     * the parent continues to be used on the original thread.
+     * As of 2.5.1, this is no longer needed or used. Due to internal optimizations,
+     * the scratch arena has been removed.
      *
-     * Redundant if the producing [HashInputStream] already had [HashInputStream.detachScratch]
-     * called on it before [HashInputStream.close]; in that case this stream already has its own arena.
-     *
-     * This does NOT make the stream safe for concurrent access. A single stream must still
-     * be used by one thread at a time. If you need concurrent hashing, use a separate
-     * [AbstractKeccakFunction] instance per thread.
-     *
-     * Allocates one [KeccakMath.GhostArena] (~240 bytes). Idempotent; calling twice
-     * discards the previous arena and allocates a fresh one.
+     * It was very ugly, and I hated having to ship it. Now that a new optimization has
+     * taken place, I'm very much happy to get rid of it. If you are one of the few
+     * needing to read this, please feel free to remove this line from your code.
      *
      * @since 2.4.0
      */
-    fun detachScratch() {
-        ghost = KeccakMath.GhostArena()
-    }
+    @Deprecated("No longer needed. This does nothing now.")
+    fun detachScratch() {}
 }

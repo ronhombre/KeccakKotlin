@@ -18,8 +18,8 @@
 
 package asia.hombre.keccak.streams
 
+import asia.hombre.keccak.KeccakConstants
 import asia.hombre.keccak.KeccakParameter
-import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.FlexiByte
 import asia.hombre.keccak.internal.KeccakMath
 import kotlin.jvm.JvmName
@@ -39,8 +39,7 @@ open class HashInputStream internal constructor(
      */
     @get:JvmName("getParameter")
     val PARAMETER: KeccakParameter,
-    private val maxOutputLength: Int = PARAMETER.maxLength / 8,
-    private var ghost: KeccakMath.GhostArena = KeccakMath.GhostArena()
+    private val maxOutputLength: Int = PARAMETER.maxLength / 8
 ) {
     private val incompleteState = LongArray(25)
     private val buffer = ByteArray(PARAMETER.BYTERATE)
@@ -73,7 +72,7 @@ open class HashInputStream internal constructor(
             }
         }
 
-        KeccakMath.directPermute(incompleteState, ghost)
+        KeccakMath.directPermute(incompleteState)
 
         buffer.fill(0)
         inputPos = 0
@@ -196,25 +195,17 @@ open class HashInputStream internal constructor(
     /**
      * Detaches this stream from its parent's permute scratch arena, giving it its own.
      *
-     * Use this when you intend to hand this stream (or the [HashOutputStream] it
-     * produces) off to a different thread than the one that owns the parent
-     * [AbstractKeccakFunction], while the parent continues to be used on the original thread.
+     * As of 2.5.1, this is no longer needed or used. Due to internal optimizations,
+     * the scratch arena has been removed.
      *
-     * The [HashOutputStream] returned by [close] inherits the detached arena, so calling
-     * [HashOutputStream.detachScratch] after this is redundant.
-     *
-     * This does NOT make the stream safe for concurrent access. A single stream must still
-     * be used by one thread at a time. If you need concurrent hashing, use a separate
-     * [AbstractKeccakFunction] instance per thread.
-     *
-     * Allocates one [KeccakMath.GhostArena] (~240 bytes). Idempotent; calling twice
-     * discards the previous arena and allocates a fresh one.
+     * It was very ugly, and I hated having to ship it. Now that a new optimization has
+     * taken place, I'm very much happy to get rid of it. If you are one of the few
+     * needing to read this, please feel free to remove this line from your code.
      *
      * @since 2.4.0
      */
-    fun detachScratch() {
-        ghost = KeccakMath.GhostArena()
-    }
+    @Deprecated("No longer needed. This does nothing now.")
+    fun detachScratch() {}
 
     /**
      * Closes this [HashInputStream] and prevents further usage.
@@ -231,6 +222,37 @@ open class HashInputStream internal constructor(
 
         tryPermute()
 
-        return HashOutputStream(PARAMETER, incompleteState, buffer, ghost, maxOutputLength)
+        return HashOutputStream(PARAMETER, incompleteState, buffer, maxOutputLength)
+    }
+
+    /**
+     * Internal helper function to add the CSHAKE pre-padding.
+     */
+    @JvmSynthetic
+    internal fun addCSHAKEPrePadding(functionName: ByteArray, customization: ByteArray) {
+        write(KeccakMath.leftEncode(this.PARAMETER.BYTERATE.toLong()))
+        write(KeccakMath.leftEncode(functionName.size.toLong() * 8))
+        write(functionName)
+        write(KeccakMath.leftEncode(customization.size.toLong() * 8))
+        write(customization)
+        forcePermute()
+    }
+
+    /**
+     * Internal helper function to add the KMAC pre-padding.
+     */
+    @JvmSynthetic
+    internal fun addKMACPrePadding(key: ByteArray, customization: ByteArray) {
+        write(KeccakMath.leftEncode(this.PARAMETER.BYTERATE.toLong()))
+        write(KeccakMath.leftEncode(32L)) //KMAC_BYTES.size * 8L
+        write(KeccakConstants.KMAC_BYTES)
+        write(KeccakMath.leftEncode(customization.size.toLong() * 8))
+        write(customization)
+        forcePermute()
+
+        write(KeccakMath.leftEncode(this.PARAMETER.BYTERATE.toLong()))
+        write(KeccakMath.leftEncode(key.size.toLong() * 8))
+        write(key)
+        forcePermute()
     }
 }

@@ -21,7 +21,6 @@ package asia.hombre.keccak.api
 import asia.hombre.keccak.KeccakParameter
 import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.internal.FlexiByte
-import asia.hombre.keccak.internal.KeccakMath
 import asia.hombre.keccak.streams.HashInputStream
 import kotlin.jvm.JvmName
 
@@ -46,8 +45,7 @@ class cSHAKE128(
      */
     val customization: ByteArray = ByteArray(0)
 ): AbstractKeccakFunction(PARAMETER.BYTERATE, PARAMETER, outputLength) {
-    override fun newInputStream(ghostArena: KeccakMath.GhostArena): HashInputStream =
-        newGhostedInputStream(functionName, customization, ghostArena)
+    override fun newInputStream(): HashInputStream = newInputStream(functionName, customization)
 
     companion object {
         @get:JvmName("getParameter")
@@ -64,14 +62,7 @@ class cSHAKE128(
         fun newInputStream(
             functionName: ByteArray = ByteArray(0),
             customization: ByteArray = ByteArray(0)
-        ): HashInputStream =
-            newGhostedInputStream(functionName, customization, KeccakMath.GhostArena())
-
-        internal fun newGhostedInputStream(
-            functionName: ByteArray,
-            customization: ByteArray,
-            ghost: KeccakMath.GhostArena
-        ): HashInputStream = object : HashInputStream(PARAMETER, ghost = ghost) {
+        ): HashInputStream = object : HashInputStream(PARAMETER) {
             override val SUFFIX: FlexiByte
                 get() =
                     if(functionName.size + customization.size != 0)
