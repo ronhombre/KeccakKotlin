@@ -41,16 +41,6 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    crate("zeroize:1.8.2") {
-        defaultFeatures = false
-    }
-    crate(project("keccakrust")) {
-        defaultFeatures = false
-        features.add("ffi")
-    }
-}
-
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
@@ -117,6 +107,16 @@ rust {
     publishEnabled = false
     locked = true
     offline = gradle.startParameter.isOffline
+
+    dependencies {
+        crate("zeroize:1.8.2") {
+            defaultFeatures = false
+        }
+        crate(project("keccakrust")) {
+            defaultFeatures = false
+            features.add("ffi")
+        }
+    }
 
     library {
         crateType.add("staticlib")
