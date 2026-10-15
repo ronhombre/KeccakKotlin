@@ -168,6 +168,14 @@ rust {
             this.manifestPath = rust.manifestPath
             this.targetDirectory = ffiTargetDirectory
 
+            // CargoBuild's generated manifest is outside the source tree.
+            // Track both crates so edits cannot reuse an outdated static library.
+            // This is a temporary fix while this is not tracked in NRGP.
+            inputs.files(
+                fileTree("src/library/rust") { include("**/*.rs") },
+                fileTree("keccakrust/src/library/rust") { include("**/*.rs") },
+            ).withPropertyName("rustSources").withPathSensitivity(PathSensitivity.RELATIVE)
+
             target = rustTarget
             release = true
         }
@@ -304,6 +312,12 @@ gradle.projectsEvaluated {
 dokka {
     pluginsConfiguration.html {
         footerMessage = "Copyright (c) 2026 Ron Lauren Hombre"
+    }
+
+    dokkaSourceSets.configureEach {
+        // The public API is in commonMain; platform sources only implement internal code.
+        // Exclude their analysis classpaths so KDocs do not build Rust/C interop libraries.
+        suppress.set(name != "commonMain")
     }
 
     dokkaPublications.html {
