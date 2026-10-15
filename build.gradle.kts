@@ -134,6 +134,7 @@ rust {
 
     kotlin.targets.withType<KotlinNativeTarget>().configureEach {
         val canBuildOnCurrentHost = HostManager().isEnabled(konanTarget)
+        val goodName = name.replaceFirstChar { it.uppercase() }
         val rustTarget = rustTargetMap.getValue(name)
         val outputName = rust.name.get().lowercase().replace("-", "")
         val ffiTargetDirectory = rust.targetDirectory.dir(name)
@@ -156,9 +157,9 @@ rust {
             }
         }
 
-        val buildFFI = tasks.register<CargoBuild>("buildFFI${name.replaceFirstChar { it.uppercase() }}") {
+        val buildFFI = tasks.register<CargoBuild>("buildFFI$goodName") {
             description = "Build the KeccakRust C ABI bridge for $rustTarget"
-            group = "build"
+            group = "build ffi"
             dependsOn(":generateCargoManifest")
             onlyIf("Kotlin/Native supports C interop for this target on the current host") {
                 canBuildOnCurrentHost
@@ -171,14 +172,16 @@ rust {
             release = true
         }
 
-        val prepareFFI = tasks.register<Exec>("prepareFFI${name.replaceFirstChar { it.uppercase() }}") {
+        val prepareFFI = tasks.register<Exec>("prepareFFI$goodName") {
             description = "Prepare the FFI to coexist with other Rust runtimes for $rustTarget"
-            group = "build"
+            group = "build ffi"
             dependsOn(buildFFI)
             onlyIf("Kotlin/Native supports C interop for this target on the current host") {
                 canBuildOnCurrentHost
             }
-            val llvmObjcopy = providers.gradleProperty("keccak.llvmObjcopy").orElse("llvm-objcopy")
+            val llvmObjcopy = providers
+                .gradleProperty("keccak.llvmObjcopy")
+                .orElse("llvm-objcopy")
 
             inputs.file(ffiLibrary)
             inputs.property("llvmObjcopy", llvmObjcopy)
