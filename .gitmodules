@@ -1,0 +1,3 @@
+[submodule "keccakrust"]
+	path = keccakrust
+	url = https://github.com/ronhombre/KeccakRust.git

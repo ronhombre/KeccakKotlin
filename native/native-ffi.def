@@ -1,0 +1,4 @@
+headers = keccakrust.h
+headerFilter = keccakrust.h
+package = asia.hombre.keccak.rust
+staticLibraries = libkeccakkotlinffi.a

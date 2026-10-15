@@ -14,9 +14,16 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 
 ## Introduction
 
-This is a 100% Kotlin Multiplatform implementation of SHA-3. It does not depend on any third-party library.
+This is a Kotlin Multiplatform implementation of SHA-3 with a shared Kotlin core. JVM and JavaScript use
+the Kotlin implementation. Native targets use [KeccakRust](https://github.com/ronhombre/KeccakRust) for
+the permutation through a static C ABI bridge. (This would likely grow so that all APIs for native
+targets/platforms use KeccakRust. This will significantly improve performance in native targets/platforms.)
 
 This is used in [KyberKotlin](https://github.com/ronhombre/KyberKotlin), an ML-KEM implemention of NIST FIPS 203.
+
+> [!WARNING]
+> 2.6.0 is currently experimental. If you build from this source, you are building with the new KeccakRust
+> permutation backend.
 
 > [!NOTE]
 > 2.3.0 is a maintenance release. It is essentially 2.1.1 but additionally supports linuxArm64, iosX64, iosArm64, and

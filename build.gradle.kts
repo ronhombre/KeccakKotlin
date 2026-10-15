@@ -1,16 +1,22 @@
+import asia.hombre.neorust.option.PanicFlag
+import asia.hombre.neorust.task.CargoBuild
 import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
+import org.jetbrains.kotlin.konan.target.HostManager
 import java.io.ByteArrayOutputStream
 
 plugins {
     kotlin("multiplatform")
-    id("org.jetbrains.dokka")  //KDocs
+    id("org.jetbrains.dokka") // KDocs
     id("maven-publish")
     id("signing")
+    id("asia.hombre.neorust") // Rust support
 }
 
 group = "asia.hombre"
-version = "2.5.1"
+version = "2.6.0"
 description = "SHA-3 Hash Functions in Kotlin Multiplatform"
 
 val projectName = "keccak"
@@ -19,11 +25,37 @@ val mavenDir = projectDir.resolve("maven")
 
 val isAutomated = System.getenv("PUBLISH_AUTO") == "true"
 
+val rustTargetMap = mapOf(
+    "linuxX64" to "x86_64-unknown-linux-gnu",
+    "linuxArm64" to "aarch64-unknown-linux-gnu",
+    "mingwX64" to "x86_64-pc-windows-gnu",
+    "iosArm64" to "aarch64-apple-ios",
+    "iosX64" to "x86_64-apple-ios",
+    "iosSimulatorArm64" to "aarch64-apple-ios-sim",
+    "androidNativeArm32" to "armv7-linux-androideabi",
+    "androidNativeArm64" to "aarch64-linux-android",
+    "androidNativeX64" to "x86_64-linux-android",
+)
+
 repositories {
     mavenCentral()
 }
 
+dependencies {
+    crate("zeroize:1.8.2") {
+        defaultFeatures = false
+    }
+    crate(project("keccakrust")) {
+        defaultFeatures = false
+        features.add("ffi")
+    }
+}
+
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     jvm {
         compilations.getByName("main") {
             compileTaskProvider.configure {
@@ -36,7 +68,21 @@ kotlin {
         }
     }
     js {
-        nodejs()
+        val testCompilation = compilations.getByName("test")
+        val prepareResources = tasks.register<Copy>("prepareJsNodeTestResources") {
+            description = "Prepares the resources for the JS Node test"
+            from(layout.projectDirectory.dir("src/commonTest/resources"))
+            // Common tests resolve fixture paths relative to the project root.
+            into(testCompilation.npmProject.dir.map { it.dir("src/commonTest/resources") })
+        }
+        nodejs {
+            testTask {
+                dependsOn(prepareResources)
+                inputs.files(prepareResources)
+                    .withPropertyName("commonTestFixtures")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+            }
+        }
         browser {
 
         }
@@ -51,12 +97,100 @@ kotlin {
     androidNativeArm32()
     androidNativeArm64()
     androidNativeX64()
+
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
         getByName("commonTest") {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test")
                 implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
             }
+        }
+    }
+}
+
+rust {
+    name = "keccakkotlin-ffi"
+    authors.add("Ron Lauren Hombre <ronlauren@hombre.asia>")
+    edition = "2024"
+    publishEnabled = false
+    locked = true
+    offline = gradle.startParameter.isOffline
+
+    library {
+        crateType.add("staticlib")
+    }
+
+    profiles {
+        named("dev") {
+            panic = PanicFlag.abort
+        }
+
+        named("release") {
+            panic = PanicFlag.abort
+        }
+    }
+
+    kotlin.targets.withType<KotlinNativeTarget>().configureEach {
+        val canBuildOnCurrentHost = HostManager().isEnabled(konanTarget)
+        val rustTarget = rustTargetMap.getValue(name)
+        val outputName = rust.name.get().lowercase().replace("-", "")
+        val ffiTargetDirectory = rust.targetDirectory.dir(name)
+        val ffiLibrary = ffiTargetDirectory.map { it.file("$rustTarget/release/lib$outputName.a") }
+        val interopLibrary = if (name == "androidNativeArm32") {
+            ffiTargetDirectory.map { it.file("$rustTarget/release/lib$outputName-compat.a") }
+        } else {
+            ffiLibrary
+        }
+
+        val buildFFI = tasks.register<CargoBuild>("buildFFI${name.replaceFirstChar { it.uppercase() }}") {
+            description = "Build the KeccakRust C ABI bridge for $rustTarget"
+            group = "build"
+            dependsOn(":generateCargoManifest")
+            onlyIf("Kotlin/Native supports C interop for this target on the current host") {
+                canBuildOnCurrentHost
+            }
+
+            this.manifestPath = rust.manifestPath
+            this.targetDirectory = ffiTargetDirectory
+
+            target = rustTarget
+            release = true
+        }
+
+        val prepareFFI = if (name == "androidNativeArm32") {
+            tasks.register<Exec>("prepareKeccakRust${name.replaceFirstChar { it.uppercase() }}") {
+                description = "Resolve Rust/GCC atomic helper overlap for Android Arm32"
+                group = "build"
+                dependsOn(buildFFI)
+                onlyIf("Kotlin/Native supports C interop for this target on the current host") {
+                    canBuildOnCurrentHost
+                }
+                inputs.file(ffiLibrary)
+                outputs.file(interopLibrary)
+                // The old NDK libgcc and Rust compiler_builtins both define __sync_* helpers.
+                // Keep the Rust definitions as weak fallbacks for the platform runtime.
+                commandLine(
+                    providers.gradleProperty("keccak.llvmObjcopy").orElse("llvm-objcopy").get(),
+                    "--wildcard", "--weaken-symbol=__sync_*",
+                    ffiLibrary.get().asFile.absolutePath,
+                    interopLibrary.get().asFile.absolutePath,
+                )
+                doFirst { interopLibrary.get().asFile.parentFile.mkdirs() }
+            }
+        } else {
+            buildFFI
+        }
+
+        val rustInterop = compilations.getByName("main").cinterops.create("FFI") {
+            definitionFile.set(layout.projectDirectory.dir("native").file("native-ffi.def"))
+            includeDirs(layout.projectDirectory.dir("src/library/rust/include").asFile)
+            extraOpts("-libraryPath", interopLibrary.get().asFile.parentFile.absolutePath)
+        }
+        tasks.named(rustInterop.interopProcessingTaskName).configure {
+            dependsOn(prepareFFI)
+            inputs.file(interopLibrary)
         }
     }
 }
