@@ -13,8 +13,9 @@
 name: "CodeQL master"
 
 on:
-  push:
-    branches: [ "master" ]
+  # Temporarily disabled for push due to CodeQL not supporting our KMM version yet
+  # push:
+    # branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
   workflow_dispatch:
