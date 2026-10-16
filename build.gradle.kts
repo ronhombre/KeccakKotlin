@@ -329,12 +329,6 @@ dokka {
         )
     }
 
-    dokkaSourceSets.configureEach {
-        // The public API is in commonMain; platform sources only implement internal code.
-        // Exclude their analysis classpaths so KDocs do not build Rust/C interop libraries.
-        suppress.set(name != "commonMain")
-    }
-
     dokkaPublications.html {
         dokkaSourceSets {
             named("commonMain") {
