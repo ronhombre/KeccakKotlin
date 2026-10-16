@@ -36,6 +36,9 @@ jobs:
           distribution: corretto
           java-version: '21'
 
+      - name: Test JavaScript and WebAssembly
+        uses: ./.github/actions/test-web
+
       - name: Install LLVM toolchain
         run: |
           sudo apt-get update

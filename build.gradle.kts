@@ -3,6 +3,8 @@ import asia.hombre.neorust.option.OptLevel
 import asia.hombre.neorust.option.PanicFlag
 import asia.hombre.neorust.task.CargoBuild
 import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
@@ -65,8 +67,8 @@ kotlin {
     }
     js {
         val testCompilation = compilations.getByName("test")
-        val prepareResources = tasks.register<Copy>("prepareJsNodeTestResources") {
-            description = "Prepares the resources for the JS Node test"
+        val prepareResources = tasks.register<Copy>("prepareJsTestResources") {
+            description = "Prepares the resources for the JS tests"
             from(layout.projectDirectory.dir("src/commonTest/resources"))
             // Common tests resolve fixture paths relative to the project root.
             into(testCompilation.npmProject.dir.map { it.dir("src/commonTest/resources") })
@@ -80,9 +82,62 @@ kotlin {
             }
         }
         browser {
-
+            testTask {
+                dependsOn(prepareResources)
+                inputs.files(prepareResources)
+                    .withPropertyName("commonTestFixtures")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
         }
         binaries.executable()
+    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        val testCompilation = compilations.getByName("test")
+        val prepareResources = tasks.register<Copy>("prepareWasmJsTestResources") {
+            description = "Prepares the resources for the Wasm JS tests"
+            from(layout.projectDirectory.dir("src/commonTest/resources"))
+            into(testCompilation.npmProject.dir.map { it.dir("src/commonTest/resources") })
+        }
+        browser {
+            testTask {
+                dependsOn(prepareResources)
+                inputs.files(prepareResources)
+                    .withPropertyName("commonTestFixtures")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
+        nodejs {
+            testTask {
+                dependsOn(prepareResources)
+                inputs.files(prepareResources)
+                    .withPropertyName("commonTestFixtures")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+            }
+        }
+        binaries.executable()
+    }
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmWasi {
+        nodejs {
+            testTask {
+                // The generated Node launcher does not configure WASI preopens (KT-65179).
+                val preopens = layout.projectDirectory.file("src/wasmWasiTest/node-preopens.cjs")
+                nodeJsArgs.addAll(listOf("--require", preopens.asFile.absolutePath))
+                inputs.file(preopens)
+                    .withPropertyName("wasiPreopens")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+                inputs.dir(layout.projectDirectory.dir("src/commonTest/resources"))
+                    .withPropertyName("commonTestFixtures")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+            }
+        }
     }
     linuxX64()
     linuxArm64()
@@ -94,7 +149,15 @@ kotlin {
     androidNativeArm64()
     androidNativeX64()
 
-    applyDefaultHierarchyTemplate()
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("wasm") {
+                withWasmJs()
+                withWasmWasi()
+            }
+        }
+    }
 
     sourceSets {
         getByName("commonTest") {

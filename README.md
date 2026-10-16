@@ -1,6 +1,5 @@
 # KeccakKotlin
 ## _Implements SHA-3 Hash Functions_
-_**Digital security for all, everywhere, no matter who they are, or what they believe in.**_
 
 [![Maven Central](https://img.shields.io/maven-central/v/asia.hombre/keccak.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22asia.hombre%22)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
@@ -14,7 +13,7 @@ _**Digital security for all, everywhere, no matter who they are, or what they be
 
 ## Introduction
 
-This is a Kotlin Multiplatform implementation of SHA-3 with a shared Kotlin core. JVM and JavaScript use
+This is a Kotlin Multiplatform implementation of SHA-3 with a shared Kotlin core. JVM, JavaScript, and WebAssembly use
 the Kotlin implementation. Native targets use [KeccakRust](https://github.com/ronhombre/KeccakRust) for
 the permutation through a static C ABI bridge. (This would likely grow so that all APIs for native
 targets/platforms use KeccakRust. This will significantly improve performance in native targets/platforms.)
@@ -71,19 +70,18 @@ ParallelHash Functions might need to add coroutine as a dependency.
 
 ## Supported and Tested Targets
 
-| Target                      | Arm32              | Arm64              | X64                |
-|-----------------------------|--------------------|--------------------|--------------------|
-| JVM (Kotlin & Java)         | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| JS (Node, Bun, & Browser)** | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| Linux                       | :x: *              | :white_check_mark: | :white_check_mark: |
-| Windows (Mingw)             | :x: *              | :x: *              | :white_check_mark: |
-| Android                     | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| iOS                         | :x: *              | :white_check_mark: | :white_check_mark: |
-| iOS Simulator               | :x: *              | :white_check_mark: | :x: *              |
+| Target +(JS/WASM)** | Arm32                                                                                                  | Arm64                                                                                                              | X64                                                                                                                |
+|---------------------|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| JVM (Kotlin & Java) | ![JVM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/jvm-test.yml) | ![JVM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/jvm-test.yml)             | ![JVM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/jvm-test.yml)             |
+| Linux               | :x: *                                                                                                  | ![Linux ARM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/linux-arm-test.yml) | ![Linux X64 Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/linux-x64-test.yml) |
+| Windows (Mingw)     | :x: *                                                                                                  | :x: *                                                                                                              | ![mingw X64 Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/mingw-x64-test.yml) |
+| Android             | :white_check_mark:                                                                                     | :white_check_mark:                                                                                                 | :white_check_mark:                                                                                                 |
+| iOS                 | :x: *                                                                                                  | ![iOS ARM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/ios-arm-test.yml)     | ![iOS X64 Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/ios-x64-test.yml)     |
+| iOS Simulator       | :x: *                                                                                                  | ![iOS ARM Test](https://img.shields.io/github/actions/workflow/status/ronhombre/KeccakKotlin/ios-arm-test.yml)     | :x: *                                                                                                              |
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
 
-**JS is not tested on its own. Rather, its correctness is proven by the other tested targets.
+**JavaScript and WebAssembly(WASM) are always tested alongside every platform test, so their results are tied together.
 
 ## Installation
 Maven/Gradle

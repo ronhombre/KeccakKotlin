@@ -1,0 +1,36 @@
+name: Test JavaScript and WebAssembly
+description: Run the JS and Wasm correctness suites in Node.js and headless Chrome.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Chrome
+      id: chrome
+      uses: browser-actions/setup-chrome@v2 # v2
+      with:
+        chrome-version: stable
+        install-dependencies: true
+
+    - name: Run JavaScript and WebAssembly tests
+      shell: bash
+      env:
+        CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+      run: |
+        chmod +x gradlew
+        # Match test methods explicitly for Karma/Mocha and exclude Benchmark.
+        ./gradlew --continue --console=plain \
+          :jsNodeTest --tests '*Tests.*' \
+          :jsBrowserTest --tests '*Tests.*' \
+          :wasmJsNodeTest --tests '*Tests.*' \
+          :wasmJsBrowserTest --tests '*Tests.*' \
+          :wasmWasiNodeTest --tests '*Tests.*'
+
+    - name: Upload JavaScript and WebAssembly test reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-test-results-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}
+        path: |
+          build/reports/tests/
+          build/test-results/
+        if-no-files-found: warn

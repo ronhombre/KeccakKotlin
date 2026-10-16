@@ -36,6 +36,11 @@ jobs:
           distribution: corretto
           java-version: '21'
 
-      - run: |
+      - name: Test JavaScript and WebAssembly
+        uses: ./.github/actions/test-web
+
+      - name: Run MinGW tests
+        shell: bash
+        run: |
           chmod +x gradlew
           ./gradlew :mingwX64Test --tests "asia.hombre.keccak.Tests"

@@ -57,6 +57,20 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: corretto
+          java-version: '21'
+
+      - name: Test JavaScript and WebAssembly
+        uses: ./.github/actions/test-web
+
       - name: Download Test Binary
         uses: actions/download-artifact@v4
         with:
