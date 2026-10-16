@@ -1,4 +1,4 @@
-// Historical tags predate the versioning configuration. Apply it only for this docs build.
+// Configure tagged builds and standalone nightly docs without changing their build scripts.
 gradle.projectsEvaluated { evaluatedGradle ->
     def docsProject = evaluatedGradle.rootProject
     def docsVersion = docsProject.providers.gradleProperty('dokkaVersion').get()
@@ -11,9 +11,16 @@ gradle.projectsEvaluated { evaluatedGradle ->
     dokka.moduleVersion.set(docsVersion)
     dokka.pluginsConfiguration.named('versioning').configure { versioning ->
         versioning.version.set(docsVersion)
-        // Each archived version is standalone; the final build bundles them once.
-        versioning.olderVersionsDir.unset()
+        def olderVersionsDir = docsProject.providers.gradleProperty('dokkaOlderVersionsDir').orNull
+        if (olderVersionsDir != null) {
+            versioning.olderVersionsDir.set(docsProject.file(olderVersionsDir))
+        } else {
+            versioning.olderVersionsDir.unset()
+        }
         versioning.olderVersions.setFrom([])
+        versioning.versionsOrdering.set(
+            docsProject.providers.gradleProperty('dokkaVersionsOrdering').getOrElse('').tokenize(',')
+        )
     }
     dokka.dokkaSourceSets.configureEach { sourceSet ->
         sourceSet.suppress.set(sourceSet.name != 'commonMain')

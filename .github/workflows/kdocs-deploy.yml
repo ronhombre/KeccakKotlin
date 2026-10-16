@@ -1,4 +1,4 @@
-# Every run bundles documentation for tags from 2.5.x onward into the current docs.
+# Every run bundles nightly and tags from 2.5.x onward into the latest stable docs.
 name: Deploy KDocs
 
 on:
@@ -43,13 +43,15 @@ jobs:
           distribution: corretto
           java-version: '21'
       - name: Build tagged documentation versions
+        id: versions
         shell: bash
         run: |
           versions_dir="$RUNNER_TEMP/kdocs-versions"
           init_script="$GITHUB_WORKSPACE/current/.github/scripts/dokka-versioning.init.gradle"
           mkdir -p "$versions_dir"
           tags="$(git -C current tag --sort=version:refname)"
-          built=0
+          declare -A tags_by_version=()
+          stable_versions=()
           while IFS= read -r tag; do
             # Include 2.5.x and newer version tags, with optional v prefix and prerelease suffix.
             if [[ ! "$tag" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
@@ -57,14 +59,36 @@ jobs:
             fi
             major=$((10#${BASH_REMATCH[1]}))
             minor=$((10#${BASH_REMATCH[2]}))
+            prerelease="${BASH_REMATCH[4]}"
             if (( major < 2 || (major == 2 && minor < 5) )); then
               continue
             fi
             version="${tag#v}"
-            if [[ -e "$versions_dir/$version" ]]; then
+            if [[ -n "${tags_by_version[$version]+exists}" ]]; then
               echo "::error::Duplicate documentation version: $version"
               exit 1
             fi
+            tags_by_version["$version"]="$tag"
+            if [[ -z "$prerelease" ]]; then
+              stable_versions+=("$version")
+            fi
+          done <<< "$tags"
+          if (( ${#stable_versions[@]} == 0 )); then
+            echo "::error::No stable version tags from 2.5.x onward found."
+            exit 1
+          fi
+
+          # Sort normalized versions so optional v prefixes do not affect the default.
+          latest_version="$(printf '%s\n' "${stable_versions[@]}" | sort -Vr | sed -n '1p')"
+          versions="$(printf '%s\n' "${!tags_by_version[@]}" | sort -Vr)"
+          versions_order="$latest_version,nightly"
+          while IFS= read -r version; do
+            # Build the latest stable tag last, with all other versions included.
+            if [[ "$version" == "$latest_version" ]]; then
+              continue
+            fi
+            versions_order+=",$version"
+            tag="${tags_by_version[$version]}"
             echo "::group::Build KDocs for $tag"
             tag_dir="$RUNNER_TEMP/kdocs-tags/$tag"
             git -C current worktree add --detach "$tag_dir" "refs/tags/$tag"
@@ -78,26 +102,47 @@ jobs:
             test -f "$tag_dir/build/dokka/html/version.json"
             mkdir -p "$versions_dir/$version"
             cp -a "$tag_dir/build/dokka/html/." "$versions_dir/$version/"
-            built=$((built + 1))
             echo "::endgroup::"
-          done <<< "$tags"
-          if (( built == 0 )); then
-            echo "::error::No version tags from 2.5.x onward found."
-            exit 1
-          fi
-      - name: Build current KDocs with all versions
+          done <<< "$versions"
+          echo "latest_tag=${tags_by_version[$latest_version]}" >> "$GITHUB_OUTPUT"
+          echo "latest_version=$latest_version" >> "$GITHUB_OUTPUT"
+          echo "versions_order=$versions_order" >> "$GITHUB_OUTPUT"
+      - name: Build nightly KDocs
         working-directory: current
         shell: bash
         run: |
           chmod +x gradlew
-          ./gradlew dokkaGenerateHtml "-PdokkaOlderVersionsDir=$RUNNER_TEMP/kdocs-versions"
+          ./gradlew dokkaGenerateHtml --init-script .github/scripts/dokka-versioning.init.gradle -PdokkaVersion=nightly
           test -f build/dokka/html/index.html
           test -f build/dokka/html/version.json
+          mkdir -p "$RUNNER_TEMP/kdocs-versions/nightly"
+          cp -a build/dokka/html/. "$RUNNER_TEMP/kdocs-versions/nightly/"
+      - name: Build latest stable KDocs with all versions
+        shell: bash
+        env:
+          LATEST_TAG: ${{ steps.versions.outputs.latest_tag }}
+          LATEST_VERSION: ${{ steps.versions.outputs.latest_version }}
+          VERSIONS_ORDER: ${{ steps.versions.outputs.versions_order }}
+        run: |
+          tag_dir="$RUNNER_TEMP/kdocs-tags/$LATEST_TAG"
+          init_script="$GITHUB_WORKSPACE/current/.github/scripts/dokka-versioning.init.gradle"
+          git -C current worktree add --detach "$tag_dir" "refs/tags/$LATEST_TAG"
+          git -C "$tag_dir" submodule update --init --recursive
+          cd "$tag_dir"
+          chmod +x gradlew
+          ./gradlew dokkaGenerateHtml --init-script "$init_script" \
+            "-PdokkaVersion=$LATEST_VERSION" \
+            "-PdokkaOlderVersionsDir=$RUNNER_TEMP/kdocs-versions" \
+            "-PdokkaVersionsOrdering=$VERSIONS_ORDER"
+          test -f build/dokka/html/index.html
+          test -f build/dokka/html/version.json
+          mkdir -p "$GITHUB_WORKSPACE/site"
+          cp -a build/dokka/html/. "$GITHUB_WORKSPACE/site/"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Dokka's versioning plugin includes the archived versions and their navigation.
-          path: 'current/build/dokka/html'
+          path: 'site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -314,12 +314,14 @@ gradle.projectsEvaluated {
 }
 
 dokka {
+    moduleVersion = "nightly"
+
     pluginsConfiguration.html {
         footerMessage = "Copyright (c) 2026 Ron Lauren Hombre"
     }
 
     pluginsConfiguration.versioning {
-        version = project.version.toString()
+        version = "nightly"
         olderVersionsDir = layout.projectDirectory.dir(
             providers.gradleProperty("dokkaOlderVersionsDir").orElse("versions")
         )
