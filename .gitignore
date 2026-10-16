@@ -45,3 +45,10 @@ bin/
 /npm/kotlin/*
 /npm/package.json
 /.gnupg/
+
+### Exclude Kotlin Generated Artifacts ###
+.kotlin/
+kotlin-js-store/
+
+### Exclude Local Experimental Patches ###
+*.patch
