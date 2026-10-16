@@ -36,10 +36,16 @@ jobs:
           distribution: corretto
           java-version: '21'
 
-      - name: Install missing target
+      - name: Install LLVM toolchain
+        run: |
+          brew install llvm
+          if [ -d "/opt/homebrew/opt/llvm/bin" ]; then echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH; fi
+          if [ -d "/usr/local/opt/llvm/bin" ]; then echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH; fi
+
+      - name: Install Target Toolchain
         run: |
           rustup update stable
-          rustup target add x86_64-apple-ios
+          rustup target add aarch64-apple-ios-sim
 
       - run: |
           chmod +x gradlew
