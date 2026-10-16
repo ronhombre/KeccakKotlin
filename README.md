@@ -81,7 +81,7 @@ ParallelHash Functions might need to add coroutine as a dependency.
 
 *Note: Some platforms are unavailable/deprecated as targets in Kotlin Multiplatform. Please send your complaints to Jetbrains.
 
-**JavaScript and WebAssembly(WASM) are always tested alongside every platform test, so their results are tied together.
+**JavaScript and WebAssembly(WASM) are always tested alongside the JVM test, so their results are tied together.
 
 ## Installation
 Maven/Gradle
