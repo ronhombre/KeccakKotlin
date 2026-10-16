@@ -41,6 +41,10 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    dokkaHtmlPlugin("org.jetbrains.dokka:versioning-plugin:${providers.gradleProperty("dokka").get()}")
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
