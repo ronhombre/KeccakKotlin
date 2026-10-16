@@ -1,25 +1,19 @@
-#![cfg_attr(not(test), no_std)]
+#![no_std]
 
 use keccakrust::keccakmath;
 
 /// Permutes the 25 lanes in KeccakKotlin's column-major layout in place.
 ///
-/// Returns 0 on success, or -1 for a null pointer or an incorrect lane count.
-/// The pointer is borrowed only for the duration of the call.
+/// Returns 0 on success
 ///
 /// # Safety
 /// For a non-null pointer and a lane count of 25, `state` must point to 25
 /// aligned, initialized, writable u64 values with exclusive access during this call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn keccakrust_permute(state: *mut u64, lane_count: i32) -> i32 {
-    if state.is_null() || lane_count != 25 {
-        return -1;
-    }
-
-    // The Kotlin adapter validates the length and pins its LongArray for this call.
+pub unsafe extern "C" fn keccakrust_permute(state: *mut u64) {
     let state = unsafe { &mut *state.cast::<[u64; 25]>() };
+
     keccakmath::permute(state);
-    0
 }
 
 #[cfg(not(test))]
@@ -36,24 +30,4 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality() -> ! {
     unsafe { abort() }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::keccakrust_permute;
-
-    #[test]
-    fn null_state_is_rejected() {
-        assert_eq!(unsafe { keccakrust_permute(core::ptr::null_mut(), 25) }, -1);
-    }
-
-    #[test]
-    fn incorrect_lane_counts_leave_the_state_untouched() {
-        for lane_count in [-1, 0, 24, 26] {
-            let mut state = [0x8000_0000_0000_0001_u64; 25];
-            let original = state;
-            assert_eq!(unsafe { keccakrust_permute(state.as_mut_ptr(), lane_count) }, -1);
-            assert_eq!(state, original);
-        }
-    }
 }

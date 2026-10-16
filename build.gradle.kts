@@ -1,3 +1,5 @@
+import asia.hombre.neorust.option.LTOFlag
+import asia.hombre.neorust.option.OptLevel
 import asia.hombre.neorust.option.PanicFlag
 import asia.hombre.neorust.task.CargoBuild
 import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
@@ -113,9 +115,6 @@ rust {
     offline = gradle.startParameter.isOffline
 
     dependencies {
-        crate("zeroize:1.8.2") {
-            defaultFeatures = false
-        }
         crate(project("keccakrust")) {
             defaultFeatures = false
             features.add("ffi")
@@ -133,6 +132,9 @@ rust {
 
         named("release") {
             panic = PanicFlag.abort
+            optLevel = OptLevel.three
+            lto = LTOFlag.fat
+            codegenUnits.set(1)
         }
     }
 

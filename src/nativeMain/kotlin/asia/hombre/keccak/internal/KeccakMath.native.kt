@@ -31,12 +31,10 @@ internal actual object KeccakMath {
 
     @OptIn(ExperimentalForeignApi::class)
     actual fun directPermute(state: LongArray) {
-        require(state.size == 25) { "Matrix too small" }
+        require(state.size == 25) { "Matrix must be a size of 25." }
 
         state.usePinned { pinned ->
-            check(keccakrust_permute(pinned.addressOf(0).reinterpret(), state.size) == 0) {
-                "Failed to permute state using KeccakRust FFI backend."
-            }
+            keccakrust_permute(pinned.addressOf(0).reinterpret())
         }
     }
 
