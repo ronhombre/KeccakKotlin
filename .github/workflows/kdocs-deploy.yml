@@ -1,12 +1,12 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Every run publishes the latest version tag at / and the current revision at /nightly/.
 name: Deploy KDocs
 
 on:
-  # Runs on pushes targeting the default branch
+  # Rebuild both documentation versions on pushes to master
   push:
     branches: ["master"]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Rebuild both documentation versions from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -15,23 +15,44 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# Allow only one concurrent deployment.
+# Runs queued between the run in-progress and latest queued are skipped.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout current revision
         uses: actions/checkout@v4
         with:
+          path: current
+          fetch-depth: 0
+          submodules: true
+      - name: Select latest version tag
+        id: latest-tag
+        working-directory: current
+        shell: bash
+        run: |
+          # Version sorting handles v2.10.0 after v2.9.0, regardless of tag creation dates.
+          tag_ref="$(git for-each-ref --sort=-version:refname --count=1 --format='%(refname)' refs/tags)"
+          if [[ -z "$tag_ref" ]]; then
+            echo "::error::No tags found; cannot build the default documentation."
+            exit 1
+          fi
+          echo "ref=$tag_ref" >> "$GITHUB_OUTPUT"
+          echo "Building default documentation from $tag_ref"
+      - name: Checkout latest tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.latest-tag.outputs.ref }}
+          path: stable
           submodules: true
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -40,13 +61,26 @@ jobs:
         with:
           distribution: corretto
           java-version: '21'
-      - name: Build KDocs with Dokka
+      - name: Build latest tag KDocs
+        working-directory: stable
         run: chmod +x gradlew && ./gradlew dokkaGenerateHtml
+      - name: Build current revision KDocs
+        working-directory: current
+        run: chmod +x gradlew && ./gradlew dokkaGenerateHtml
+      - name: Assemble both documentation versions
+        shell: bash
+        run: |
+          test -f stable/build/dokka/html/index.html
+          test -f current/build/dokka/html/index.html
+          pages_dir="$RUNNER_TEMP/kdocs-pages"
+          mkdir -p "$pages_dir/nightly"
+          cp -a stable/build/dokka/html/. "$pages_dir/"
+          cp -a current/build/dokka/html/. "$pages_dir/nightly/"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload built KDocs
-          path: './build/dokka/html'
+          # Pages replaces the whole site, so every upload must contain both destinations.
+          path: '${{ runner.temp }}/kdocs-pages'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
