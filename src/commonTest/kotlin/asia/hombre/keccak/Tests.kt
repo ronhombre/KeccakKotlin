@@ -1,13 +1,26 @@
 package asia.hombre.keccak
 
-import asia.hombre.keccak.api.*
+import asia.hombre.keccak.api.KMAC128
+import asia.hombre.keccak.api.KMAC256
+import asia.hombre.keccak.api.KMACXOF128
+import asia.hombre.keccak.api.KMACXOF256
+import asia.hombre.keccak.api.RawSHAKE128
+import asia.hombre.keccak.api.RawSHAKE256
+import asia.hombre.keccak.api.SHA3_224
+import asia.hombre.keccak.api.SHA3_256
+import asia.hombre.keccak.api.SHA3_384
+import asia.hombre.keccak.api.SHA3_512
+import asia.hombre.keccak.api.SHAKE128
+import asia.hombre.keccak.api.SHAKE256
+import asia.hombre.keccak.api.cSHAKE128
+import asia.hombre.keccak.api.cSHAKE256
 import asia.hombre.keccak.internal.AbstractKeccakFunction
 import asia.hombre.keccak.streams.HashInputStream
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
-@OptIn(ExperimentalStdlibApi::class)
 class Tests {
     /**
      * Tests KAT, Reusability, and Equality all together. Plus, the underlying functions since they are used as well.
@@ -66,11 +79,39 @@ class Tests {
     }
 
     @Test
+    fun SHAKE128_FILE_KAT() {
+        val api = SHAKE128()
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/shake128_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
+    }
+
+    @Test
     fun SHAKE256_KAT() {
         val api = SHAKE256()
         val apiInputStream = SHAKE256.newInputStream()
 
         standardKATTest(api, apiInputStream, api.outputLength, "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f")
+    }
+
+    @Test
+    fun SHAKE256_FILE_KAT() {
+        val api = SHAKE256()
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/shake256_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
     }
 
     @Test
@@ -82,11 +123,39 @@ class Tests {
     }
 
     @Test
+    fun RawSHAKE128_FILE_KAT() {
+        val api = RawSHAKE128()
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/rawshake128_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
+    }
+
+    @Test
     fun RawSHAKE256_KAT() {
         val api = RawSHAKE256()
         val apiInputStream = RawSHAKE256.newInputStream()
 
         standardKATTest(api, apiInputStream, api.outputLength, "3a1108d4a90a31b85a10bdce77f4bfbdcc5b1d70dd405686f8bbde834aa1a410")
+    }
+
+    @Test
+    fun RawSHAKE256_FILE_KAT() {
+        val api = RawSHAKE256()
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/rawshake256_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
     }
 
     @Test
@@ -98,11 +167,39 @@ class Tests {
     }
 
     @Test
+    fun cSHAKE128_FILE_KAT() {
+        val api = cSHAKE128(functionName = "TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/cshake128_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
+    }
+
+    @Test
     fun cSHAKE256_KAT() {
         val api = cSHAKE256(functionName = "TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
         val apiInputStream = cSHAKE256.newInputStream(functionName = "TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
 
         standardKATTest(api, apiInputStream, api.outputLength, "c1495f818da538983d382ba9675cad7c44f5df0940d24a6c11d0edcabf235308")
+    }
+
+    @Test
+    fun cSHAKE256_FILE_KAT() {
+        val api = cSHAKE256(functionName = "TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/cshake256_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
     }
 
     @Test
@@ -141,6 +238,20 @@ class Tests {
     }
 
     @Test
+    fun KMACXOF128_FILE_KAT() {
+        val api = KMACXOF128("TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/kmacxof128_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
+    }
+
+    @Test
     fun KMACXOF256_KAT() {
         val NIST_KEY = decodeHex("404142434445464748494A4B4C4D4E4F505152535455565758595A5B5C5D5E5F")
         val NIST_DATA = decodeHex("00010203")
@@ -149,6 +260,20 @@ class Tests {
         val apiInputStream = KMACXOF256.newInputStream(NIST_KEY, NIST_CUSTOMIZATION)
 
         standardKATTest(api, apiInputStream, api.outputLength, "1755133f1534752aad0748f2c706fb5c784512cab835cd15676b16c0c6647fa9", NIST_DATA)
+    }
+
+    @Test
+    fun KMACXOF256_FILE_KAT() {
+        val api = KMACXOF256("TAK".encodeToByteArray(), customization = "KAT".encodeToByteArray())
+
+        api.update("KeccakKotlin".encodeToByteArray())
+
+        val outputStream = api.stream()
+
+        val testKAT = readTestResource("src/commonTest/resources/kmacxof256_kat.bin")
+        val test = outputStream.nextBytes(1024 * 1024)
+
+        assertContentEquals(testKAT, test)
     }
 
     fun readTooManyBytes(api: AbstractKeccakFunction, length: Int) {
