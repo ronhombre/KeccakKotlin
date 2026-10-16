@@ -41,17 +41,7 @@ class HashOutputStream {
     private val stateBuffer: ByteArray
     private var used = 0
     private val squeezable: Boolean
-        get() = when(PARAMETER) {
-            //SHA-3
-            KeccakParameter.SHA3_224,
-            KeccakParameter.SHA3_256,
-            KeccakParameter.SHA3_384,
-            KeccakParameter.SHA3_512,
-            //KMACs
-            KeccakParameter.KMAC_128,
-            KeccakParameter.KMAC_256 -> false
-            else -> true
-        }
+        get() = PARAMETER.isExtendable()
     internal val maxOutputLength: Int
     private var totalOutputLength = 0
 

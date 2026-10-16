@@ -118,4 +118,18 @@ enum class KeccakParameter(val minLength: Int, val maxLength: Int, val BITRATE: 
      */
     @JvmField
     val BYTERATE = BITRATE shr 3
+
+    fun isExtendable(): Boolean {
+        return when(this) {
+            //SHA-3
+            SHA3_224,
+            SHA3_256,
+            SHA3_384,
+            SHA3_512,
+            //KMACs
+            KMAC_128,
+            KMAC_256 -> false
+            else -> true
+        }
+    }
 }
