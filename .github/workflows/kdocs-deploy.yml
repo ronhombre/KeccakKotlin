@@ -1,12 +1,12 @@
-# Every run publishes the latest version tag at / and the current revision at /nightly/.
+# Every run bundles documentation for tags from 2.5.x onward into the current docs.
 name: Deploy KDocs
 
 on:
-  # Rebuild both documentation versions on pushes to master
+  # Rebuild all documentation versions on pushes to master
   push:
     branches: ["master"]
 
-  # Rebuild both documentation versions from the Actions tab
+  # Rebuild all documentation versions from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -35,25 +35,6 @@ jobs:
           path: current
           fetch-depth: 0
           submodules: true
-      - name: Select latest version tag
-        id: latest-tag
-        working-directory: current
-        shell: bash
-        run: |
-          # Version sorting handles v2.10.0 after v2.9.0, regardless of tag creation dates.
-          tag_ref="$(git for-each-ref --sort=-version:refname --count=1 --format='%(refname)' refs/tags)"
-          if [[ -z "$tag_ref" ]]; then
-            echo "::error::No tags found; cannot build the default documentation."
-            exit 1
-          fi
-          echo "ref=$tag_ref" >> "$GITHUB_OUTPUT"
-          echo "Building default documentation from $tag_ref"
-      - name: Checkout latest tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.latest-tag.outputs.ref }}
-          path: stable
-          submodules: true
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Setup Java
@@ -61,26 +42,62 @@ jobs:
         with:
           distribution: corretto
           java-version: '21'
-      - name: Build latest tag KDocs
-        working-directory: stable
-        run: chmod +x gradlew && ./gradlew dokkaGenerateHtml
-      - name: Build current revision KDocs
-        working-directory: current
-        run: chmod +x gradlew && ./gradlew dokkaGenerateHtml
-      - name: Assemble both documentation versions
+      - name: Build tagged documentation versions
         shell: bash
         run: |
-          test -f stable/build/dokka/html/index.html
-          test -f current/build/dokka/html/index.html
-          pages_dir="$RUNNER_TEMP/kdocs-pages"
-          mkdir -p "$pages_dir/nightly"
-          cp -a stable/build/dokka/html/. "$pages_dir/"
-          cp -a current/build/dokka/html/. "$pages_dir/nightly/"
+          versions_dir="$RUNNER_TEMP/kdocs-versions"
+          init_script="$GITHUB_WORKSPACE/current/.github/scripts/dokka-versioning.init.gradle"
+          mkdir -p "$versions_dir"
+          tags="$(git -C current tag --sort=version:refname)"
+          built=0
+          while IFS= read -r tag; do
+            # Include 2.5.x and newer version tags, with optional v prefix and prerelease suffix.
+            if [[ ! "$tag" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+              continue
+            fi
+            major=$((10#${BASH_REMATCH[1]}))
+            minor=$((10#${BASH_REMATCH[2]}))
+            if (( major < 2 || (major == 2 && minor < 5) )); then
+              continue
+            fi
+            version="${tag#v}"
+            if [[ -e "$versions_dir/$version" ]]; then
+              echo "::error::Duplicate documentation version: $version"
+              exit 1
+            fi
+            echo "::group::Build KDocs for $tag"
+            tag_dir="$RUNNER_TEMP/kdocs-tags/$tag"
+            git -C current worktree add --detach "$tag_dir" "refs/tags/$tag"
+            git -C "$tag_dir" submodule update --init --recursive
+            (
+              cd "$tag_dir"
+              chmod +x gradlew
+              ./gradlew dokkaGenerateHtml --init-script "$init_script" "-PdokkaVersion=$version"
+            )
+            test -f "$tag_dir/build/dokka/html/index.html"
+            test -f "$tag_dir/build/dokka/html/version.json"
+            mkdir -p "$versions_dir/$version"
+            cp -a "$tag_dir/build/dokka/html/." "$versions_dir/$version/"
+            built=$((built + 1))
+            echo "::endgroup::"
+          done <<< "$tags"
+          if (( built == 0 )); then
+            echo "::error::No version tags from 2.5.x onward found."
+            exit 1
+          fi
+      - name: Build current KDocs with all versions
+        working-directory: current
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew dokkaGenerateHtml "-PdokkaOlderVersionsDir=$RUNNER_TEMP/kdocs-versions"
+          test -f build/dokka/html/index.html
+          test -f build/dokka/html/version.json
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Pages replaces the whole site, so every upload must contain both destinations.
-          path: '${{ runner.temp }}/kdocs-pages'
+          # Dokka's versioning plugin includes the archived versions and their navigation.
+          path: 'current/build/dokka/html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

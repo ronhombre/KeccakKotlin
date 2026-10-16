@@ -314,6 +314,13 @@ dokka {
         footerMessage = "Copyright (c) 2026 Ron Lauren Hombre"
     }
 
+    pluginsConfiguration.versioning {
+        version = project.version.toString()
+        olderVersionsDir = layout.projectDirectory.dir(
+            providers.gradleProperty("dokkaOlderVersionsDir").orElse("versions")
+        )
+    }
+
     dokkaSourceSets.configureEach {
         // The public API is in commonMain; platform sources only implement internal code.
         // Exclude their analysis classpaths so KDocs do not build Rust/C interop libraries.
