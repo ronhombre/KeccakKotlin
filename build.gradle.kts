@@ -8,6 +8,8 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.js.npm.npmProject
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 import org.jetbrains.kotlin.konan.target.HostManager
 import java.io.ByteArrayOutputStream
 
@@ -167,6 +169,23 @@ kotlin {
             }
         }
     }
+}
+
+tasks.withType<KotlinNativeTest>().configureEach {
+    val projectDirectory = layout.projectDirectory.asFile.absolutePath
+    environment("KECCAK_TEST_PROJECT_DIR", projectDirectory, tracked = false)
+    inputs.dir(layout.projectDirectory.dir("src/commonTest/resources"))
+        .withPropertyName("commonTestFixtures")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
+tasks.withType<KotlinNativeSimulatorTest>().configureEach {
+    // xcrun simctl spawn does not preserve the host working directory and only forwards SIMCTL_CHILD_* variables.
+    environment(
+        "SIMCTL_CHILD_KECCAK_TEST_PROJECT_DIR",
+        layout.projectDirectory.asFile.absolutePath,
+        tracked = false,
+    )
 }
 
 rust {
