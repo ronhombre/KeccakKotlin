@@ -36,6 +36,11 @@ jobs:
           distribution: corretto
           java-version: '21'
 
+      - name: Install LLVM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm clang lld binutils
+
       - run: |
           chmod +x gradlew
           ./gradlew :linuxX64Test --tests "asia.hombre.keccak.Tests"

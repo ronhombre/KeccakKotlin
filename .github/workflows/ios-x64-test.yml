@@ -36,6 +36,11 @@ jobs:
           distribution: corretto
           java-version: '21'
 
+      - name: Install missing target
+        run: |
+          rustup update stable
+          rustup target add x86_64-apple-ios
+
       - run: |
           chmod +x gradlew
           ./gradlew :iosX64Test --tests "asia.hombre.keccak.Tests"
