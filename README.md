@@ -142,7 +142,8 @@ println(shake128_out.nextBytes(1024).toHexString(HexFormat.UpperCase))
 View the java example [here](https://github.com/ronhombre/KeccakKotlin/blob/master/java-example/src/main/java/asia/hombre/examples/keccak/Main.java)!
 
 ## Documentation
-* [keccak.hombre.asia](https://keccak.hombre.asia)
+* For latest stable release, [keccak.hombre.asia](https://keccak.hombre.asia).
+* For nightly builds, [here](https://keccak.hombre.asia/older/nightly/) on every commit.
 
 ### References
 
