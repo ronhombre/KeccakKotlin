@@ -3,6 +3,8 @@ name: "JVM Test master"
 on:
   release:
     types: [published]
+  push:
+    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
@@ -25,6 +27,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Setup Java
         uses: actions/setup-java@v6
