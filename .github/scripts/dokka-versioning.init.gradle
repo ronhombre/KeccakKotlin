@@ -1,0 +1,21 @@
+// Historical tags predate the versioning configuration. Apply it only for this docs build.
+gradle.projectsEvaluated { evaluatedGradle ->
+    def docsProject = evaluatedGradle.rootProject
+    def docsVersion = docsProject.providers.gradleProperty('dokkaVersion').get()
+    docsProject.dependencies.add(
+        'dokkaHtmlPlugin',
+        "org.jetbrains.dokka:versioning-plugin:${docsProject.property('dokka')}"
+    )
+
+    def dokka = docsProject.extensions.getByName('dokka')
+    dokka.moduleVersion.set(docsVersion)
+    dokka.pluginsConfiguration.named('versioning').configure { versioning ->
+        versioning.version.set(docsVersion)
+        // Each archived version is standalone; the final build bundles them once.
+        versioning.olderVersionsDir.unset()
+        versioning.olderVersions.setFrom([])
+    }
+    dokka.dokkaSourceSets.configureEach { sourceSet ->
+        sourceSet.suppress.set(sourceSet.name != 'commonMain')
+    }
+}
