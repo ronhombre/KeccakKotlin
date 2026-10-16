@@ -38,13 +38,6 @@ pub extern "C" fn rust_eh_personality() -> ! {
     unsafe { abort() }
 }
 
-/*#[cfg(not(test))]
-#[panic_handler]
-fn panic(_: &core::panic::PanicInfo<'_>) -> ! {
-    // A Rust panic must never unwind across the C ABI boundary.
-    unsafe { abort() }
-}*/
-
 #[cfg(test)]
 mod tests {
     use super::keccakrust_permute;
