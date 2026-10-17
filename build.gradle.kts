@@ -228,7 +228,8 @@ rust {
         val ffiTargetDirectory = rust.targetDirectory.dir(name)
         val ffiLibrary = ffiTargetDirectory.map { it.file("$rustTarget/release/lib$outputName.a") }
         val interopLibrary = layout.buildDirectory.file("ffi/$rustTarget/lib$outputName.a")
-        val symbolOptions = buildList {
+        val toolBaseDirectory = layout.projectDirectory.asFile
+        val objcopyOptions = buildList {
             when {
                 name == "mingwX64" -> {
                     // llvm-objcopy cannot weaken COFF symbols. Rename both the
@@ -243,6 +244,9 @@ rust {
                 add("--wildcard")
                 add("--weaken-symbol=__sync_*")
             }
+            add("--strip-debug")
+            add("--remove-section=.llvmbc")
+            add("--remove-section=.llvmcmd")
         }
 
         val buildFFI = tasks.register<CargoBuild>("buildFFI$goodName") {
@@ -267,30 +271,29 @@ rust {
             target = rustTarget
             release = true
         }
+        fun llvmTool(property: String, command: String): Provider<String> =
+            providers.gradleProperty(property).orElse(command).map { path ->
+                if (('/' in path || '\\' in path) && !File(path).isAbsolute) {
+                    toolBaseDirectory.resolve(path).absolutePath
+                } else path
+            }
 
-        val prepareFFI = tasks.register<Exec>("prepareFFI$goodName") {
-            description = "Prepare the FFI to coexist with other Rust runtimes for $rustTarget"
+        val prepareFFI = tasks.register<PrepareFFI>("prepareFFI$goodName") {
+            description = "Keep the Keccak FFI and its native dependencies for $rustTarget"
             group = "build ffi"
             dependsOn(buildFFI)
             onlyIf("Kotlin/Native supports C interop for this target on the current host") {
                 canBuildOnCurrentHost
             }
-            val llvmObjcopy = providers
-                .gradleProperty("keccak.llvmObjcopy")
-                .orElse("llvm-objcopy")
+            sourceArchive.set(ffiLibrary)
+            preparedArchive.set(interopLibrary)
+            llvmAr.set(llvmTool("keccak.llvmAr", "llvm-ar"))
+            llvmNm.set(llvmTool("keccak.llvmNm", "llvm-nm"))
+            llvmObjcopy.set(llvmTool("keccak.llvmObjcopy", "llvm-objcopy"))
+            symbolOptions.set(objcopyOptions)
 
-            inputs.file(ffiLibrary)
-            inputs.property("llvmObjcopy", llvmObjcopy)
-            inputs.property("symbolOptions", symbolOptions)
-            outputs.file(interopLibrary)
-
-            commandLine(
-                listOf(llvmObjcopy.get()) + symbolOptions + listOf(
-                    ffiLibrary.get().asFile.absolutePath,
-                    interopLibrary.get().asFile.absolutePath,
-                )
-            )
-            doFirst { interopLibrary.get().asFile.parentFile.mkdirs() }
+            pruneArchive.set(providers.gradleProperty("keccak.pruneArchive")
+                .map { it.toBooleanStrict() }.orElse(true))
         }
 
         val rustInterop = compilations.getByName("main").cinterops.create("FFI") {
@@ -424,5 +427,184 @@ dokka {
                 )
             }
         }
+    }
+}
+
+/**
+ * Significantly reduce the FFI's artifact klib from ~700KiB to ~8KiB.
+ *
+ * This is important because of Maven Central's new publishing quota limits.
+ */
+@CacheableTask
+abstract class PrepareFFI @Inject constructor(private val execOperations: ExecOperations) : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val sourceArchive: RegularFileProperty
+
+    @get:OutputFile
+    abstract val preparedArchive: RegularFileProperty
+
+    @get:Input
+    abstract val llvmAr: Property<String>
+
+    @get:Input
+    abstract val llvmNm: Property<String>
+
+    @get:Input
+    abstract val llvmObjcopy: Property<String>
+
+    @get:Input
+    abstract val symbolOptions: ListProperty<String>
+
+    @get:Input
+    abstract val pruneArchive: Property<Boolean>
+
+    private fun runTool(workDir: File, executable: String, arguments: List<String>): String {
+        val stdout = ByteArrayOutputStream()
+        execOperations.exec {
+            workingDir(workDir)
+            commandLine(buildList(arguments.size + 1) {
+                add(executable)
+                addAll(arguments)
+            })
+            standardOutput = stdout
+        }.assertNormalExitValue()
+        return stdout.toString(Charsets.UTF_8.name())
+    }
+
+    private fun keepFullArchive(reason: String) {
+        logger.warn("$name: keeping the full FFI archive: $reason")
+    }
+
+    private fun prune(workDir: File, archiveName: String) {
+        val members = ArrayList<String>()
+        val uniqueMembers = HashSet<String>()
+        for (line in runTool(workDir, llvmAr.get(), listOf("t", archiveName)).lineSequence()) {
+            if (line.isNotEmpty()) {
+                members.add(line)
+                if (!uniqueMembers.add(line)) {
+                    keepFullArchive("duplicate member names prevent unambiguous selection")
+                    return
+                }
+            }
+        }
+
+        val prefix = "$archiveName["
+        val definitions = HashMap<String, MutableSet<String>>()
+        val undefinedByMember = HashMap<String, MutableSet<String>>()
+        val commonMembers = HashSet<String>()
+
+        val nmOutput = runTool(
+            workDir,
+            llvmNm.get(),
+            listOf(
+                "--format=posix",
+                "--print-file-name",
+                "--extern-only",
+                "--no-demangle",
+                "--no-sort",
+                "--quiet",
+                archiveName,
+            ),
+        )
+        for (line in nmOutput.lineSequence()) {
+            if (line.isBlank()) continue
+            val separator = line.lastIndexOf("]: ")
+            check(line.startsWith(prefix) && separator >= prefix.length) {
+                "Unexpected llvm-nm output: $line"
+            }
+            val member = line.substring(prefix.length, separator)
+            val rest = line.substring(separator + 3).trimStart()
+            val nameEnd = rest.indexOfFirst { it.isWhitespace() }
+            check(nameEnd > 0) { "Unexpected llvm-nm symbol: $line" }
+            val symName = rest.substring(0, nameEnd)
+            var kindIndex = nameEnd + 1
+            while (kindIndex < rest.length && rest[kindIndex].isWhitespace()) kindIndex++
+            check(kindIndex < rest.length && (kindIndex + 1 == rest.length || rest[kindIndex + 1].isWhitespace())) {
+                "Unexpected llvm-nm symbol: $line"
+            }
+
+            when (val kind = rest[kindIndex]) {
+                'U' -> undefinedByMember.getOrPut(member) { LinkedHashSet() }.add(symName)
+                'w', 'v' -> Unit // Optional undefined weak symbols
+                else -> {
+                    if (kind == 'C') commonMembers.add(member)
+                    definitions.getOrPut(symName) { LinkedHashSet() }.add(member)
+                }
+            }
+        }
+
+        var hasPermute = false
+        val selected = LinkedHashSet<String>()
+        for ((symName, providers) in definitions) {
+            val exportedName = symName.removePrefix("_")
+            if (exportedName.startsWith("keccakrust_")) {
+                if (exportedName == "keccakrust_permute") hasPermute = true
+                if (providers.size > 1) {
+                    keepFullArchive("an FFI export has multiple providers")
+                    return
+                }
+                selected.addAll(providers)
+            }
+        }
+        check(hasPermute) { "The Rust archive does not export keccakrust_permute" }
+
+        val pending = ArrayDeque(selected)
+        while (pending.isNotEmpty()) {
+            val member = pending.removeFirst()
+            if (member in commonMembers) {
+                keepFullArchive("a selected member uses common-symbol resolution")
+                return
+            }
+            for (symName in undefinedByMember[member].orEmpty()) {
+                val providers = definitions[symName] ?: continue
+                if (providers.any { it in selected }) continue
+                if (providers.size > 1) {
+                    keepFullArchive("$symName has multiple archive providers")
+                    return
+                }
+                val provider = providers.first()
+                if (selected.add(provider)) pending.addLast(provider)
+            }
+        }
+
+        check(uniqueMembers.containsAll(selected)) { "llvm-nm reported an unknown archive member" }
+        val removed = members.filterNot { it in selected }
+        if (removed.isNotEmpty()) {
+            // Delete from a copy: preserve member bytes, order and archive format.
+            // A response file also avoids Windows command-line length limits.
+            val response = workDir.resolve("remove.rsp")
+            try {
+                response.bufferedWriter().use { writer ->
+                    for (member in removed) {
+                        writer.write("\"")
+                        writer.write(member.replace("\\", "\\\\").replace("\"", "\\\""))
+                        writer.write("\"\n")
+                    }
+                }
+                runTool(workDir, llvmAr.get(), listOf("--rsp-quoting=posix", "dsD", archiveName, "@${response.name}"))
+            } finally {
+                response.delete()
+            }
+        }
+        logger.lifecycle("$name: retained ${selected.size}/${members.size} native archive members")
+    }
+
+    @TaskAction
+    fun prepare() {
+        val source = sourceArchive.get().asFile
+        val output = preparedArchive.get().asFile
+        val workDir = output.parentFile.apply { mkdirs() }
+        val input = workDir.resolve("input.a")
+        source.copyTo(input, overwrite = true)
+        try {
+            if (pruneArchive.get()) {
+                prune(workDir, input.name)
+            }
+            runTool(workDir, llvmObjcopy.get(), symbolOptions.get() + listOf(input.name, output.name))
+        } finally {
+            input.delete()
+        }
+        logger.lifecycle("$name: ${source.length()} -> ${output.length()} bytes")
     }
 }
