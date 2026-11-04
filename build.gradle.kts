@@ -165,7 +165,7 @@ kotlin {
         getByName("commonTest") {
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-test")
-                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.2")
             }
         }
     }
